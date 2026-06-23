@@ -1,0 +1,202 @@
+import discord
+from discord import app_commands
+from discord.ext import commands
+import json
+import os
+import random
+from datetime import datetime, timedelta
+from config import SHOP_CHANNEL_ID
+
+DATA_FILE = "data/economy.json"
+VIP_DARK = discord.Color.from_rgb(30, 30, 35)
+ACCENT = discord.Color.from_rgb(212, 175, 55)
+
+
+def load_data():
+    if not os.path.exists("data"):
+        os.makedirs("data")
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE) as f:
+            return json.load(f)
+    return {}
+
+
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def get_player(data, user_id):
+    uid = str(user_id)
+    if uid not in data:
+        data[uid] = {
+            "balance": 100,
+            "last_daily": None,
+            "multiplier_2x_expires": None,
+            "multiplier_5x_expires": None,
+            "pets": [],
+            "inventory": {}
+        }
+    return data[uid]
+
+
+def get_active_multiplier(player):
+    now = datetime.utcnow()
+    if player.get("multiplier_5x_expires"):
+        expires = datetime.fromisoformat(player["multiplier_5x_expires"])
+        if now < expires:
+            return 5
+    if player.get("multiplier_2x_expires"):
+        expires = datetime.fromisoformat(player["multiplier_2x_expires"])
+        if now < expires:
+            return 2
+    return 1
+
+
+def get_active_pet_multiplier(player):
+    for pet in player.get("pets", []):
+        if isinstance(pet, str):
+            continue
+        if pet.get("active"):
+            return float(pet.get("multiplier", 1.0))
+    return 1.0
+
+
+class Economy(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if SHOP_CHANNEL_ID and interaction.channel_id == SHOP_CHANNEL_ID:
+            await interaction.response.send_message("This command can't be used in the shop channel.", ephemeral=True)
+            return False
+        return True
+
+    @app_commands.command(name="balance", description="Check your coin balance")
+    async def balance(self, interaction: discord.Interaction, member: discord.Member = None):
+        member = member or interaction.user
+        data = load_data()
+        player = get_player(data, member.id)
+        booster_mult = get_active_multiplier(player)
+        pet_mult = get_active_pet_multiplier(player)
+        embed = discord.Embed(title=f"Wallet — {member.display_name}", color=VIP_DARK)
+        embed.add_field(name="Coins", value=f"**{player['balance']}**", inline=True)
+        embed.add_field(name="Booster", value=f"**{booster_mult}x**", inline=True)
+        embed.add_field(name="Pet", value=f"**{pet_mult}x**", inline=True)
+        embed.set_thumbnail(url=member.display_avatar.url)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="daily", description="Claim your daily reward")
+    async def daily(self, interaction: discord.Interaction):
+        data = load_data()
+        player = get_player(data, interaction.user.id)
+        now = datetime.utcnow()
+        if player["last_daily"]:
+            last = datetime.fromisoformat(player["last_daily"])
+            if now - last < timedelta(hours=24):
+                remaining = timedelta(hours=24) - (now - last)
+                hours, rem = divmod(remaining.seconds, 3600)
+                minutes = rem // 60
+                await interaction.response.send_message(f"You already claimed your daily. Come back in **{hours}h {minutes}m**.", ephemeral=True)
+                return
+        base = random.randint(50, 150)
+        booster_mult = get_active_multiplier(player)
+        pet_mult = get_active_pet_multiplier(player)
+        total = int(base * booster_mult * pet_mult)
+        player["balance"] += total
+        player["last_daily"] = now.isoformat()
+        save_data(data)
+        embed = discord.Embed(title="Daily Reward", description=f"+ **{total} coins**", color=VIP_DARK)
+        embed.add_field(name="Base", value=str(base), inline=True)
+        embed.add_field(name="Booster", value=f"{booster_mult}x", inline=True)
+        embed.add_field(name="Pet", value=f"{pet_mult}x", inline=True)
+        embed.add_field(name="Balance", value=f"**{player['balance']}**", inline=False)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="work", description="Work to earn coins")
+    async def work(self, interaction: discord.Interaction):
+        data = load_data()
+        player = get_player(data, interaction.user.id)
+        base = random.randint(10, 50)
+        booster_mult = get_active_multiplier(player)
+        pet_mult = get_active_pet_multiplier(player)
+        total = int(base * booster_mult * pet_mult)
+        player["balance"] += total
+        save_data(data)
+        jobs = ["Programmer", "Chef", "Farmer", "Miner", "Builder", "Pilot", "Doctor", "Streamer"]
+        job = random.choice(jobs)
+        embed = discord.Embed(title="Work Complete", description=f"You worked as **{job}**", color=VIP_DARK)
+        embed.add_field(name="Earned", value=f"{base} coins", inline=True)
+        embed.add_field(name="Booster", value=f"{booster_mult}x", inline=True)
+        embed.add_field(name="Pet", value=f"{pet_mult}x", inline=True)
+        embed.add_field(name="Total", value=f"**+{total}**", inline=False)
+        embed.add_field(name="Balance", value=f"**{player['balance']}**", inline=False)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="gamble", description="Gamble your coins")
+    async def gamble(self, interaction: discord.Interaction, amount: int):
+        data = load_data()
+        player = get_player(data, interaction.user.id)
+        if amount <= 0:
+            await interaction.response.send_message("Bet a positive amount.", ephemeral=True)
+            return
+        if player["balance"] < amount:
+            await interaction.response.send_message("You don't have enough coins.", ephemeral=True)
+            return
+        roll = random.randint(1, 100)
+        if roll <= 45:
+            player["balance"] -= amount
+            title, color, text = "You Lost", discord.Color.red(), f"-{amount}"
+        elif roll <= 90:
+            player["balance"] += amount
+            title, color, text = "You Won", discord.Color.green(), f"+{amount}"
+        else:
+            win = amount * 2
+            player["balance"] += win
+            title, color, text = "JACKPOT", ACCENT, f"+{win}"
+        save_data(data)
+        embed = discord.Embed(title=title, description=text, color=color)
+        embed.add_field(name="Balance", value=f"**{player['balance']}**")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="leaderboard", description="Show the top players")
+    async def leaderboard(self, interaction: discord.Interaction):
+        data = load_data()
+        if not data:
+            await interaction.response.send_message("No players yet.", ephemeral=True)
+            return
+        sorted_players = sorted(data.items(), key=lambda x: x[1]["balance"], reverse=True)[:10]
+        medals = {1: "🥇", 2: "🥈", 3: "🥉"}
+        lines = []
+        for i, (uid, info) in enumerate(sorted_players, 1):
+            user = self.bot.get_user(int(uid))
+            name = user.display_name if user else "Unknown"
+            prefix = medals.get(i, f"**#{i}**")
+            lines.append(f"{prefix} **{name}** — {info['balance']} coins")
+        embed = discord.Embed(title="✦ LEADERBOARD ✦", description="\n".join(lines), color=VIP_DARK)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="transfer", description="Transfer coins to another player")
+    async def transfer(self, interaction: discord.Interaction, member: discord.Member, amount: int):
+        data = load_data()
+        sender = get_player(data, interaction.user.id)
+        if amount <= 0:
+            await interaction.response.send_message("Transfer a positive amount.", ephemeral=True)
+            return
+        if sender["balance"] < amount:
+            await interaction.response.send_message("You don't have enough coins.", ephemeral=True)
+            return
+        if member.id == interaction.user.id:
+            await interaction.response.send_message("You can't transfer to yourself.", ephemeral=True)
+            return
+        receiver = get_player(data, member.id)
+        sender["balance"] -= amount
+        receiver["balance"] += amount
+        save_data(data)
+        embed = discord.Embed(title="Transfer Complete", description=f"Sent {amount} coins to {member.mention}", color=VIP_DARK)
+        embed.add_field(name="Your Balance", value=f"**{sender['balance']}**")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+async def setup(bot):
+    await bot.add_cog(Economy(bot))
