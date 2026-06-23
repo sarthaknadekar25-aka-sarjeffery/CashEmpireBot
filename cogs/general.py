@@ -31,10 +31,28 @@ class General(commands.Cog):
             color=VIP_DARK
         )
         embed.add_field(name="💰 Economy", value="`/balance` `/daily` `/work` `/gamble` `/transfer`", inline=False)
-        embed.add_field(name="🛒 Shop", value="`/shop` `/pets`", inline=False)
-        embed.add_field(name="🏆 Leaderboard", value="`/leaderboard`", inline=False)
-        embed.add_field(name="⚙️ Utility", value="`/ping` `/help`", inline=False)
-        embed.add_field(name="👑 Owner", value="`/addcoins` `/removecoins` `/setbalance` `/resetuser` `/broadcast`", inline=False)
+        embed.add_field(name="🛒 Shop", value="`/shop` `/petshop`", inline=False)
+        embed.add_field(name="🐾 Pets", value="`/mypets` `/activate`", inline=False)
+        embed.add_field(name="🤝 Trading", value="`/sell`", inline=False)
+        embed.add_field(name="📊 Leaderboard", value="`/lb` `/xplb` `/rank`", inline=False)
+        embed.add_field(name="⚙️ Utility", value="`/ping` `/help` `/guide`", inline=False)
+        embed.add_field(name="👑 Owner", value="`/addcoins` `/removecoins` `/setbalance` `/resetuser` `/broadcast` `/clear` `/giveaway` `/announcement`", inline=False)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="guide", description="How to play CashEmpire")
+    async def guide(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="✦ HOW TO PLAY — CashEmpire ✦",
+            description="Earn coins, collect pets, climb the leaderboard!",
+            color=VIP_DARK
+        )
+        embed.add_field(name="1️⃣ Start Playing", value="Use `/daily` and `/work` to earn coins. You start with **100 coins**!", inline=False)
+        embed.add_field(name="2️⃣ Buy Boosters", value="Use `/shop` to buy 2x/5x boosters that multiply your earnings for 24h.", inline=False)
+        embed.add_field(name="3️⃣ Open Crates", value="Use `/petshop` to buy crates. Each crate has 5 pets with **1% chance** for a rare **Gold pet**!", inline=False)
+        embed.add_field(name="4️⃣ Pets & XP", value="Activate your best pet with `/activate` — its multiplier boosts all earnings. You also earn **XP** by chatting and using commands!", inline=False)
+        embed.add_field(name="5️⃣ Trade Pets", value="Use `/sell` to list pets for sale in the trading channel. Players can **Buy** or **Bargain**!", inline=False)
+        embed.add_field(name="6️⃣ Climb the Ranks", value="Check `/lb` (coins) and `/xplb` (XP) to see the top 25 players. Daily leaderboards post automatically!", inline=False)
+        embed.set_footer(text="Tip: Lucky Charms from /shop boost your gold pet chance!")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 

@@ -2,41 +2,19 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from datetime import datetime, timedelta
-import json
-import os
 import random
+from database import load_data, save_data, get_player
 
-DATA_FILE = "data/economy.json"
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 
 
-def load_data():
-    if not os.path.exists("data"):
-        os.makedirs("data")
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE) as f:
-            return json.load(f)
-    return {}
-
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-
-def get_player(data, user_id):
-    uid = str(user_id)
-    if uid not in data:
-        data[uid] = {
-            "balance": 100,
-            "last_daily": None,
-            "multiplier_2x_expires": None,
-            "multiplier_5x_expires": None,
-            "pets": [],
-            "inventory": {},
-            "luck_boost": 0
-        }
-    return data[uid]
+SHOP_ITEMS = [
+    {"id": "2x_booster", "name": "2x Booster", "emoji": "🚀", "price": 500, "description": "Double earnings for 24h"},
+    {"id": "5x_booster", "name": "5x Booster", "emoji": "💎", "price": 2000, "description": "5x earnings for 24h"},
+    {"id": "mystery_box", "name": "Mystery Box", "emoji": "🎁", "price": 250, "description": "Open for 50-500 random coins"},
+    {"id": "lucky_charm", "name": "Lucky Charm", "emoji": "🍀", "price": 1000, "description": "+0.5% gold pet luck (stacks)"},
+    {"id": "hourglass", "name": "Hourglass", "emoji": "⏳", "price": 1500, "description": "Reset your daily cooldown"},
+]
 
 
 SHOP_ITEMS = [

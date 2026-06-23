@@ -2,41 +2,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 from config import LEADERBOARD_CHANNEL_ID, XP_LEADERBOARD_CHANNEL_ID
-import json
-import os
+from database import load_data, save_data, get_player
 from datetime import time, datetime, timezone
-
-DATA_FILE = "data/economy.json"
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 GOLD = discord.Color.from_rgb(255, 215, 0)
 SILVER = discord.Color.from_rgb(192, 192, 192)
 BRONZE = discord.Color.from_rgb(205, 127, 50)
 
 
-def load_data():
-    if not os.path.exists("data"):
-        os.makedirs("data")
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE) as f:
-            return json.load(f)
-    return {}
 
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-
-def get_player(data, user_id):
-    uid = str(user_id)
-    if uid not in data:
-        data[uid] = {
-            "balance": 100, "last_daily": None,
-            "multiplier_2x_expires": None, "multiplier_5x_expires": None,
-            "pets": [], "inventory": {}, "luck_boost": 0,
-            "xp": 0, "messages": 0, "commands": 0
-        }
-    return data[uid]
 
 
 def build_leaderboard_embed(data, bot, title, sort_key, channel_id, top_n=25):

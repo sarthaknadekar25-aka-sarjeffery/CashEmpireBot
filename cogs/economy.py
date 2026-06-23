@@ -1,43 +1,15 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-import json
-import os
 import random
 from datetime import datetime, timedelta
 from config import SHOP_CHANNEL_ID
-
-DATA_FILE = "data/economy.json"
+from database import load_data, save_data, get_player, migrate_pets
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 ACCENT = discord.Color.from_rgb(212, 175, 55)
 
 
-def load_data():
-    if not os.path.exists("data"):
-        os.makedirs("data")
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE) as f:
-            return json.load(f)
-    return {}
 
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-
-def get_player(data, user_id):
-    uid = str(user_id)
-    if uid not in data:
-        data[uid] = {
-            "balance": 100,
-            "last_daily": None,
-            "multiplier_2x_expires": None,
-            "multiplier_5x_expires": None,
-            "pets": [],
-            "inventory": {}
-        }
-    return data[uid]
 
 
 def get_active_multiplier(player):

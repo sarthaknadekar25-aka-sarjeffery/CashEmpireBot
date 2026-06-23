@@ -2,38 +2,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from config import OWNER_ID, TRADING_CHANNEL_ID
-import json
-import os
 import random
-from datetime import datetime, timedelta
-
-DATA_FILE = "data/economy.json"
+from database import load_data, save_data, get_player
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 
 
-def load_data():
-    if not os.path.exists("data"):
-        os.makedirs("data")
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE) as f:
-            return json.load(f)
-    return {}
 
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-
-def get_player(data, user_id):
-    uid = str(user_id)
-    if uid not in data:
-        data[uid] = {
-            "balance": 100, "last_daily": None,
-            "multiplier_2x_expires": None, "multiplier_5x_expires": None,
-            "pets": [], "inventory": {}, "luck_boost": 0
-        }
-    return data[uid]
 
 
 def owner_check():
@@ -168,6 +142,17 @@ class Owner(commands.Cog):
     @app_commands.command(name="giveaway", description="[Owner] Start a giveaway")
     async def giveaway(self, interaction: discord.Interaction):
         await interaction.response.send_modal(GiveawayModal())
+
+    @app_commands.command(name="announcement", description="[Owner] Send an announcement embed")
+    @app_commands.describe(message="The announcement message")
+    async def announcement(self, interaction: discord.Interaction, message: str):
+        embed = discord.Embed(
+            title="📢 ANNOUNCEMENT",
+            description=message,
+            color=discord.Color.from_rgb(212, 175, 55)
+        )
+        embed.set_footer(text=f"Posted by {interaction.user.display_name}")
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot):
