@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from config import SHOP_CHANNEL_ID
+from database import load_data, get_player, migrate_pets
 
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 
@@ -22,6 +23,32 @@ class General(commands.Cog):
         color = discord.Color.green() if latency < 200 else discord.Color.orange() if latency < 500 else discord.Color.red()
         embed = discord.Embed(title="Pong!", description=f"**{latency}ms**", color=color)
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="flex", description="Flex your stats in the flex channel")
+    async def flex(self, interaction: discord.Interaction):
+        channel = interaction.client.get_channel(1515320625848123453)
+        if not channel:
+            await interaction.response.send_message("Flex channel not found.", ephemeral=True)
+            return
+        data = load_data()
+        player = get_player(data, interaction.user.id)
+        migrate_pets(player)
+        active_pet = None
+        for p in player.get("pets", []):
+            if p.get("active"):
+                active_pet = p
+                break
+        embed = discord.Embed(title=f"⚡ {interaction.user.display_name}'s Profile", color=discord.Color.from_rgb(30, 30, 35))
+        embed.set_thumbnail(url=interaction.user.display_avatar.url)
+        embed.add_field(name="💰 Coins", value=f"**{player.get('balance', 0)}**", inline=True)
+        embed.add_field(name="⭐ XP", value=f"**{player.get('xp', 0)}**", inline=True)
+        embed.add_field(name="🐾 Pets", value=f"**{len(player.get('pets', []))}**", inline=True)
+        if active_pet:
+            embed.add_field(name="Active Pet", value=f"{active_pet.get('emoji', '🐾')} **{active_pet['name']}** ({active_pet.get('rarity', 'Common')}) — **{active_pet['multiplier']}x**", inline=False)
+        embed.add_field(name="📨 Messages", value=f"**{player.get('messages', 0)}**", inline=True)
+        embed.add_field(name="⚙️ Commands", value=f"**{player.get('commands', 0)}**", inline=True)
+        await channel.send(embed=embed)
+        await interaction.response.send_message("Flex posted! 💪", ephemeral=True)
 
     @app_commands.command(name="help", description="Show available commands")
     async def help(self, interaction: discord.Interaction):
