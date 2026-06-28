@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from config import TRADING_CHANNEL_ID
-from database import load_data, save_data, get_player, migrate_pets
+from database import load_data, save_data, get_player, migrate_pets, pet_image_url
 
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 RARITY_COLORS = {
@@ -81,6 +81,7 @@ class SellPriceModal(discord.ui.Modal, title="List Your Pet"):
             color=rarity_colors.get(sold["rarity"], 0x1E1E23)
         )
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+        embed.set_thumbnail(url=pet_image_url(sold["name"], sold["rarity"]))
         embed.add_field(name="Pet", value=f"{sold.get('emoji', '🐾')} **{sold['name']}**", inline=True)
         embed.add_field(name="Rarity", value=sold["rarity"], inline=True)
         embed.add_field(name="Multiplier", value=f"**{sold['multiplier']}x**", inline=True)
@@ -124,6 +125,7 @@ class BargainModal(discord.ui.Modal, title="Make an Offer"):
             description=f"{interaction.user.mention} offered **{offer} coins** for **{self.pet_info['emoji']} {self.pet_info['name']}**",
             color=discord.Color.gold()
         )
+        embed.set_thumbnail(url=pet_image_url(self.pet_info["name"], self.pet_info["rarity"]))
         embed.add_field(name="Pet", value=f"{self.pet_info['emoji']} {self.pet_info['name']}")
         embed.add_field(name="Rarity", value=self.pet_info["rarity"])
         embed.add_field(name="Multiplier", value=f"{self.pet_info['multiplier']}x")

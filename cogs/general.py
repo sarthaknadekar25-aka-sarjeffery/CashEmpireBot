@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from config import SHOP_CHANNEL_ID
-from database import load_data, get_player, migrate_pets
+from database import load_data, get_player, migrate_pets, pet_image_url
 
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 
@@ -44,7 +44,10 @@ class General(commands.Cog):
         embed.add_field(name="⭐ XP", value=f"**{player.get('xp', 0)}**", inline=True)
         embed.add_field(name="🐾 Pets", value=f"**{len(player.get('pets', []))}**", inline=True)
         if active_pet:
+            embed.set_image(url=pet_image_url(active_pet["name"], active_pet["rarity"]))
             embed.add_field(name="Active Pet", value=f"{active_pet.get('emoji', '🐾')} **{active_pet['name']}** ({active_pet.get('rarity', 'Common')}) — **{active_pet['multiplier']}x**", inline=False)
+        else:
+            embed.set_image(url=pet_image_url("DefaultPet", "Common"))
         embed.add_field(name="📨 Messages", value=f"**{player.get('messages', 0)}**", inline=True)
         embed.add_field(name="⚙️ Commands", value=f"**{player.get('commands', 0)}**", inline=True)
         await channel.send(embed=embed)

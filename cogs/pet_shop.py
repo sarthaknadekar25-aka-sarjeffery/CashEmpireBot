@@ -3,7 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import random
 from datetime import datetime
-from database import load_data, save_data, get_player, migrate_pets
+from database import load_data, save_data, get_player, migrate_pets, pet_image_url
 
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 RARITY_COLORS = {
@@ -117,6 +117,7 @@ class CrateSelect(discord.ui.Select):
         save_data(data)
         embed = discord.Embed(title="Crate Opened!", description=f"You opened **{crate['emoji']} {crate['name']}**", color=RARITY_COLORS.get(pet["rarity"], VIP_DARK))
         gold_text = " ⭐ **GOLD** ⭐" if pet["rarity"] == "Gold" else ""
+        embed.set_thumbnail(url=pet_image_url(pet["name"], pet["rarity"]))
         embed.add_field(name=f"{pet['emoji']} {pet['name']}{gold_text}", value=f"{pet['rarity']} | **{pet['multiplier']}x** | +{xp_gain} XP")
         embed.add_field(name="Balance", value=f"**{player['balance']}** coins")
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -130,7 +131,7 @@ class CrateSelect(discord.ui.Select):
                 description=f"{interaction.user.mention} got **{pet['emoji']} {pet['name']}** ({pet['multiplier']}x) from **{crate['emoji']} {crate['name']}**!",
                 color=color_code.get(pet["rarity"], 0xFFD700)
             )
-            announce.set_thumbnail(url=interaction.user.display_avatar.url)
+            announce.set_thumbnail(url=pet_image_url(pet["name"], pet["rarity"]))
             await channel.send(embed=announce)
 
 
@@ -158,6 +159,8 @@ class PetShop(commands.Cog):
             await interaction.response.send_message("You have no pets. Open crates in `/petshop`!", ephemeral=True)
             return
         embed = discord.Embed(title=f"Your Pets ({len(pets)})", color=VIP_DARK)
+        active = next((p for p in pets if p.get("active")), pets[0])
+        embed.set_thumbnail(url=pet_image_url(active["name"], active["rarity"]))
         for i, pet in enumerate(pets):
             active = " ⭐" if pet.get("active") else ""
             color_emoji = {"Common": "⬜", "Uncommon": "🟢", "Rare": "🔵", "Epic": "🟣", "Legendary": "🟡", "Gold": "🌟"}

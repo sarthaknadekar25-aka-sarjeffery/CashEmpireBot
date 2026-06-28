@@ -78,6 +78,21 @@ def get_player(data, user_id):
     return data[uid]
 
 
+PET_IMAGE_STYLES = {
+    "Common": "thumbs",
+    "Uncommon": "bottts-neutral",
+    "Rare": "bottts",
+    "Epic": "avataaars",
+    "Legendary": "pixel-art",
+    "Gold": "pixel-art",
+}
+
+
+def pet_image_url(pet_name, rarity="Common"):
+    style = PET_IMAGE_STYLES.get(rarity, "thumbs")
+    return f"https://api.dicebear.com/9.x/{style}/png?seed={pet_name.replace(' ', '')}&size=128&radius=10"
+
+
 def migrate_pets(player):
     new_pets = []
     for pet in player.get("pets", []):
