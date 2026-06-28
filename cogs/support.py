@@ -4,6 +4,8 @@ from discord.ext import commands
 from datetime import datetime
 from config import GAME_SERVER_SUPPORT_CHANNEL_ID, MAIN_SERVER_FEEDBACK_CHANNEL_ID
 
+_cooldowns = {}
+
 SUPPORT_OPTIONS = [
     discord.SelectOption(label="Report a Bug", emoji="🐞", description="Report a bug or glitch", value="bug"),
     discord.SelectOption(label="Suggest an Idea", emoji="💡", description="Suggest a new feature or idea", value="suggest"),
@@ -59,9 +61,17 @@ class SupportModal(discord.ui.Modal, title="Submit to Support"):
 
 class SupportSelect(discord.ui.Select):
     def __init__(self):
-        super().__init__(placeholder="Choose a support category...", options=SUPPORT_OPTIONS, min_values=1, max_values=1)
+        super().__init__(custom_id="support_select", placeholder="Choose a support category...", options=SUPPORT_OPTIONS, min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
+        user_id = interaction.user.id
+        now = datetime.utcnow().timestamp()
+        last = _cooldowns.get(user_id, 0)
+        if now - last < 120:
+            remaining = int(120 - (now - last))
+            await interaction.response.send_message(f"Please wait **{remaining}s** between submissions.", ephemeral=True)
+            return
+        _cooldowns[user_id] = now
         await interaction.response.send_modal(SupportModal(self.values[0]))
 
 
@@ -71,37 +81,33 @@ class SupportView(discord.ui.View):
         self.add_item(SupportSelect())
 
 
+SUPPORT_PANEL_EMBED = discord.Embed(
+    title="✦ SUPPORT CENTER ✦",
+    description="Select a category below to submit your request.\nOur team will review it as soon as possible.",
+    color=discord.Color.from_rgb(30, 30, 35)
+)
+SUPPORT_PANEL_EMBED.add_field(name="🐞 Report a Bug", value="Found a glitch or something broken?", inline=True)
+SUPPORT_PANEL_EMBED.add_field(name="💡 Suggest an Idea", value="Have a feature in mind?", inline=True)
+SUPPORT_PANEL_EMBED.add_field(name="⚠️ Report a Player", value="Report someone breaking rules", inline=True)
+SUPPORT_PANEL_EMBED.add_field(name="⭐ General Feedback", value="Share your thoughts", inline=True)
+SUPPORT_PANEL_EMBED.add_field(name="❓ Other", value="Something else?", inline=True)
+SUPPORT_PANEL_EMBED.set_footer(text="This panel is permanent — select a category to begin.")
+
+
 class Support(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.cooldowns = {}
 
-    @app_commands.command(name="supportpanel", description="Open the support panel to submit feedback or reports")
+    @app_commands.command(name="supportpanel", description="Post the permanent support panel in this channel")
+    @app_commands.default_permissions(manage_messages=True)
     async def supportpanel(self, interaction: discord.Interaction):
         if interaction.channel_id != GAME_SERVER_SUPPORT_CHANNEL_ID:
             await interaction.response.send_message(f"This command can only be used in the support channel.", ephemeral=True)
             return
-        user_id = interaction.user.id
-        now = datetime.utcnow().timestamp()
-        last = self.cooldowns.get(user_id, 0)
-        if now - last < 120:
-            remaining = int(120 - (now - last))
-            await interaction.response.send_message(f"Please wait **{remaining}s** before using this again.", ephemeral=True)
-            return
-        self.cooldowns[user_id] = now
-        embed = discord.Embed(
-            title="✦ SUPPORT CENTER ✦",
-            description="Select a category below to submit your request.\nOur team will review it as soon as possible.",
-            color=discord.Color.from_rgb(30, 30, 35)
-        )
-        embed.add_field(name="🐞 Report a Bug", value="Found a glitch or something broken?", inline=True)
-        embed.add_field(name="💡 Suggest an Idea", value="Have a feature in mind?", inline=True)
-        embed.add_field(name="⚠️ Report a Player", value="Report someone breaking rules", inline=True)
-        embed.add_field(name="⭐ General Feedback", value="Share your thoughts", inline=True)
-        embed.add_field(name="❓ Other", value="Something else?", inline=True)
-        embed.set_footer(text="You have a 2-minute cooldown between submissions.")
-        await interaction.response.send_message(embed=embed, view=SupportView(), ephemeral=True)
+        await interaction.channel.send(embed=SUPPORT_PANEL_EMBED, view=SupportView())
+        await interaction.response.send_message("✅ Support panel posted!", ephemeral=True)
 
 
 async def setup(bot):
+    bot.add_view(SupportView())
     await bot.add_cog(Support(bot))
