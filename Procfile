@@ -1,1 +1,1 @@
-worker: python cashbot.py
+web: python cashbot.py
