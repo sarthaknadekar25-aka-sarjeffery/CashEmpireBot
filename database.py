@@ -1,40 +1,41 @@
 import os
 import json
-import threading
 
 DATA_FILE = "data/economy.json"
 
-_db_lock = threading.Lock()
-_db_conn = None
 _db_ready = False
+_db_conn = None
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
-
 if DATABASE_URL and DATABASE_URL.startswith("postgres"):
-    import psycopg2
-    import psycopg2.extras
-
-    _db_conn = psycopg2.connect(DATABASE_URL)
-    _db_conn.autocommit = True
-    cur = _db_conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS players (
-            uid TEXT PRIMARY KEY,
-            data JSONB NOT NULL DEFAULT '{}'
-        )
-    """)
-    cur.close()
-    _db_ready = True
+    try:
+        import psycopg2
+        import psycopg2.extras
+        _db_conn = psycopg2.connect(DATABASE_URL)
+        _db_conn.autocommit = True
+        cur = _db_conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS players (
+                uid TEXT PRIMARY KEY,
+                data JSONB NOT NULL DEFAULT '{}'
+            )
+        """)
+        cur.close()
+        _db_ready = True
+    except Exception:
+        _db_ready = False
 
 
 def load_data():
     if _db_ready:
-        with _db_lock:
+        try:
             cur = _db_conn.cursor()
             cur.execute("SELECT uid, data FROM players")
             rows = cur.fetchall()
             cur.close()
             return {row[0]: dict(row[1]) for row in rows}
+        except Exception:
+            pass
     if not os.path.exists("data"):
         os.makedirs("data")
     if os.path.exists(DATA_FILE):
@@ -45,7 +46,7 @@ def load_data():
 
 def save_data(data):
     if _db_ready:
-        with _db_lock:
+        try:
             cur = _db_conn.cursor()
             cur.execute("DELETE FROM players")
             if data:
@@ -55,7 +56,9 @@ def save_data(data):
                     [(uid, json.dumps(pd)) for uid, pd in data.items()]
                 )
             cur.close()
-        return
+            return
+        except Exception:
+            pass
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
