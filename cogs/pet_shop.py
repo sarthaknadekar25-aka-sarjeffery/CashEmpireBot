@@ -18,33 +18,33 @@ RARITY_XP = {"Common": 5, "Uncommon": 8, "Rare": 15, "Epic": 30, "Legendary": 50
 
 CRATES = [
     {
-        "id": "woodland_crate", "name": "Woodland Crate", "emoji": "📦", "price": 800,
+        "id": "woodland_crate", "name": "Woodland Crate", "emoji": "🌲", "price": 800,
         "pets": [
-            {"name": "Forest Spirit", "emoji": "🌿", "rarity": "Common", "mult_min": 1.1, "mult_max": 1.3, "weight": 35},
-            {"name": "Water Turtle", "emoji": "🐢", "rarity": "Common", "mult_min": 1.1, "mult_max": 1.35, "weight": 30},
-            {"name": "Sly Fox", "emoji": "🦊", "rarity": "Uncommon", "mult_min": 1.3, "mult_max": 1.6, "weight": 20},
-            {"name": "Thorn Bear", "emoji": "🐻", "rarity": "Rare", "mult_min": 1.7, "mult_max": 2.2, "weight": 14},
-            {"name": "Golden Stag", "emoji": "🦌", "rarity": "Gold", "mult_min": 3.5, "mult_max": 5.0, "weight": 1},
+            {"name": "Red Fox", "emoji": "🦊", "rarity": "Common", "mult_min": 1.1, "mult_max": 1.3, "weight": 35},
+            {"name": "Roe Deer", "emoji": "🦌", "rarity": "Common", "mult_min": 1.1, "mult_max": 1.35, "weight": 30},
+            {"name": "Raccoon", "emoji": "🦝", "rarity": "Uncommon", "mult_min": 1.3, "mult_max": 1.6, "weight": 20},
+            {"name": "Gray Wolf", "emoji": "🐺", "rarity": "Rare", "mult_min": 1.7, "mult_max": 2.2, "weight": 14},
+            {"name": "Golden Eagle", "emoji": "🦅", "rarity": "Gold", "mult_min": 3.5, "mult_max": 5.0, "weight": 1},
         ]
     },
     {
         "id": "inferno_crate", "name": "Inferno Crate", "emoji": "🔥", "price": 2000,
         "pets": [
-            {"name": "Ember Fox", "emoji": "🦊", "rarity": "Uncommon", "mult_min": 1.3, "mult_max": 1.6, "weight": 30},
-            {"name": "Flame Wolf", "emoji": "🐺", "rarity": "Rare", "mult_min": 1.7, "mult_max": 2.2, "weight": 28},
-            {"name": "Lava Turtle", "emoji": "🐢", "rarity": "Rare", "mult_min": 1.8, "mult_max": 2.3, "weight": 25},
-            {"name": "Fire Drake", "emoji": "🐉", "rarity": "Epic", "mult_min": 2.3, "mult_max": 3.0, "weight": 16},
-            {"name": "Golden Phoenix", "emoji": "🔥", "rarity": "Gold", "mult_min": 4.0, "mult_max": 6.0, "weight": 1},
+            {"name": "Desert Lizard", "emoji": "🦎", "rarity": "Common", "mult_min": 1.1, "mult_max": 1.35, "weight": 30},
+            {"name": "Flamingo", "emoji": "🦩", "rarity": "Uncommon", "mult_min": 1.3, "mult_max": 1.6, "weight": 28},
+            {"name": "Cheetah", "emoji": "🐆", "rarity": "Rare", "mult_min": 1.7, "mult_max": 2.2, "weight": 25},
+            {"name": "Lion", "emoji": "🦁", "rarity": "Epic", "mult_min": 2.3, "mult_max": 3.0, "weight": 16},
+            {"name": "Golden Python", "emoji": "🐍", "rarity": "Gold", "mult_min": 4.0, "mult_max": 6.0, "weight": 1},
         ]
     },
     {
-        "id": "celestial_crate", "name": "Celestial Crate", "emoji": "🌌", "price": 5000,
+        "id": "celestial_crate", "name": "Celestial Crate", "emoji": "🌙", "price": 5000,
         "pets": [
-            {"name": "Star Fox", "emoji": "🦊", "rarity": "Rare", "mult_min": 1.8, "mult_max": 2.3, "weight": 30},
-            {"name": "Moon Panther", "emoji": "🐆", "rarity": "Epic", "mult_min": 2.3, "mult_max": 2.8, "weight": 28},
-            {"name": "Cosmic Wolf", "emoji": "🐺", "rarity": "Epic", "mult_min": 2.5, "mult_max": 3.2, "weight": 25},
-            {"name": "Void Dragon", "emoji": "🐉", "rarity": "Legendary", "mult_min": 3.0, "mult_max": 4.5, "weight": 16},
-            {"name": "Golden Seraph", "emoji": "👼", "rarity": "Gold", "mult_min": 5.0, "mult_max": 8.0, "weight": 1},
+            {"name": "Arctic Hare", "emoji": "🐇", "rarity": "Common", "mult_min": 1.2, "mult_max": 1.4, "weight": 30},
+            {"name": "Snowy Owl", "emoji": "🦉", "rarity": "Uncommon", "mult_min": 1.4, "mult_max": 1.7, "weight": 28},
+            {"name": "Bengal Tiger", "emoji": "🐅", "rarity": "Rare", "mult_min": 1.8, "mult_max": 2.3, "weight": 25},
+            {"name": "Snow Leopard", "emoji": "🐆", "rarity": "Epic", "mult_min": 2.5, "mult_max": 3.2, "weight": 16},
+            {"name": "Golden Pheasant", "emoji": "🦚", "rarity": "Gold", "mult_min": 5.0, "mult_max": 8.0, "weight": 1},
         ]
     }
 ]
