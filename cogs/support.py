@@ -5,6 +5,8 @@ from datetime import datetime
 from config import GAME_SERVER_SUPPORT_CHANNEL_ID, MAIN_SERVER_FEEDBACK_CHANNEL_ID
 
 _cooldowns = {}
+_pending_screenshots = {}
+SCREENSHOT_TIMEOUT = 120
 
 SUPPORT_OPTIONS = [
     discord.SelectOption(label="Report a Bug", emoji="🐞", description="Report a bug or glitch", value="bug"),
@@ -29,7 +31,6 @@ class SupportModal(discord.ui.Modal, title="Submit to Support"):
 
     title_input = discord.ui.TextInput(label="Title", placeholder="Brief summary of your submission", max_length=100, required=True)
     description = discord.ui.TextInput(label="Description", placeholder="Provide full details here...", style=discord.TextStyle.paragraph, max_length=2000, required=True)
-    screenshot = discord.ui.TextInput(label="Screenshot Link (optional)", placeholder="https://...", max_length=500, required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
         channel = interaction.client.get_channel(MAIN_SERVER_FEEDBACK_CHANNEL_ID)
@@ -52,22 +53,36 @@ class SupportModal(discord.ui.Modal, title="Submit to Support"):
         embed.add_field(name="", value="", inline=False)
         embed.add_field(name="📌 Title", value=self.title_input.value, inline=False)
         embed.add_field(name="📝 Description", value=self.description.value, inline=False)
-        screenshot = self.screenshot.value.strip()
-        if screenshot:
-            if screenshot.startswith("http"):
-                try:
-                    embed.set_image(url=screenshot)
-                except Exception:
-                    pass
-            embed.add_field(name="🖼️ Screenshot", value=screenshot, inline=False)
         embed.set_footer(text=f"Type: {self.support_type}")
-        print(f"Support: channel={channel} type={type(channel).__name__} id={channel.id}", flush=True)
         try:
-            await channel.send(embed=embed)
-            await interaction.response.send_message("✅ Your submission has been sent successfully! The team will review it.", ephemeral=True)
+            msg = await channel.send(embed=embed)
+            _pending_screenshots[interaction.user.id] = (msg.id, datetime.utcnow().timestamp())
+            view = ScreenshotView(interaction.user.id, msg.id)
+            await interaction.response.send_message("✅ Submitted! Click below to attach a screenshot.", view=view, ephemeral=True)
         except Exception as e:
-            print(f"Support submission failed: {e}", flush=True)
-            await interaction.response.send_message("✅ Your submission was received! (Couldn't attach screenshot link to embed, but it's included in the description.)", ephemeral=True)
+            print(f"Support submit failed: {e}", flush=True)
+            await interaction.response.send_message("Failed to submit. Try again later.", ephemeral=True)
+
+
+class ScreenshotButton(discord.ui.Button):
+    def __init__(self, user_id, msg_id):
+        self.target_user = user_id
+        self.msg_id = msg_id
+        super().__init__(label="Upload Screenshot", emoji="📷", style=discord.ButtonStyle.primary)
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.target_user:
+            await interaction.response.send_message("Not your submission.", ephemeral=True)
+            return
+        _pending_screenshots[interaction.user.id] = (self.msg_id, datetime.utcnow().timestamp())
+        self.disabled = True
+        await interaction.response.edit_message(content="📷 Send your image in this channel within 2 minutes!", view=None)
+
+
+class ScreenshotView(discord.ui.View):
+    def __init__(self, user_id, msg_id):
+        super().__init__(timeout=120)
+        self.add_item(ScreenshotButton(user_id, msg_id))
 
 
 class SupportSelect(discord.ui.Select):
@@ -116,6 +131,35 @@ class Support(commands.Cog):
             return
         await interaction.channel.send(embed=SUPPORT_PANEL_EMBED, view=SupportView())
         await interaction.response.send_message("✅ Support panel posted!", ephemeral=True)
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.author.bot:
+            return
+        user_id = message.author.id
+        pending = _pending_screenshots.get(user_id)
+        if not pending:
+            return
+        msg_id, ts = pending
+        if datetime.utcnow().timestamp() - ts > SCREENSHOT_TIMEOUT:
+            _pending_screenshots.pop(user_id, None)
+            return
+        if not message.attachments:
+            return
+        _pending_screenshots.pop(user_id, None)
+        channel = self.bot.get_channel(MAIN_SERVER_FEEDBACK_CHANNEL_ID)
+        if not channel:
+            return
+        try:
+            target = await channel.fetch_message(msg_id)
+            files = [await a.to_file() for a in message.attachments[:3]]
+            await target.reply(content=f"📷 Screenshot from {message.author.mention}:", files=files)
+            try:
+                await message.add_reaction("✅")
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"Screenshot forward failed: {e}", flush=True)
 
 
 async def setup(bot):
