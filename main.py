@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from config import DISCORD_TOKEN
+from config import DISCORD_TOKEN, GUILD_ID
 
 intents = discord.Intents.default()
 intents.members = True
@@ -19,9 +19,16 @@ class MyBot(commands.Bot):
         print(f"Logged in as {self.user} (ID: {self.user.id})", flush=True)
         try:
             synced = await self.tree.sync()
-            print(f"Synced {len(synced)} slash command(s)", flush=True)
+            print(f"Synced {len(synced)} global slash command(s)", flush=True)
         except Exception as e:
-            print(f"Failed to sync commands: {e}", flush=True)
+            print(f"Failed to sync global commands: {e}", flush=True)
+        if GUILD_ID:
+            try:
+                guild_obj = discord.Object(id=GUILD_ID)
+                synced = await self.tree.sync(guild=guild_obj)
+                print(f"Synced {len(synced)} guild command(s)", flush=True)
+            except Exception as e:
+                print(f"Failed to sync guild commands: {e}", flush=True)
 
 
 bot = MyBot()
