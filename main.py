@@ -19,14 +19,16 @@ class MyBot(commands.Bot):
         print(f"Logged in as {self.user} (ID: {self.user.id})", flush=True)
         try:
             synced = await self.tree.sync()
-            print(f"Synced {len(synced)} global slash command(s)", flush=True)
+            names = [c.name for c in synced]
+            print(f"Synced {len(synced)} global command(s): {names}", flush=True)
         except Exception as e:
             print(f"Failed to sync global commands: {e}", flush=True)
         if GUILD_ID:
             try:
                 guild_obj = discord.Object(id=GUILD_ID)
                 synced = await self.tree.sync(guild=guild_obj)
-                print(f"Synced {len(synced)} guild command(s)", flush=True)
+                names = [c.name for c in synced]
+                print(f"Synced {len(synced)} guild command(s): {names}", flush=True)
             except Exception as e:
                 print(f"Failed to sync guild commands: {e}", flush=True)
 

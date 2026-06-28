@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from config import SHOP_CHANNEL_ID
+from config import SHOP_CHANNEL_ID, BOT_COMMANDS_CHANNEL_ID
 from database import load_data, get_player, migrate_pets, pet_image_url
 
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
@@ -12,6 +12,8 @@ class General(commands.Cog):
         self.bot = bot
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.channel_id == BOT_COMMANDS_CHANNEL_ID:
+            return True
         if SHOP_CHANNEL_ID and interaction.channel_id == SHOP_CHANNEL_ID:
             await interaction.response.send_message("This command can't be used in the shop channel.", ephemeral=True)
             return False
