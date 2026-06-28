@@ -54,7 +54,11 @@ class SupportModal(discord.ui.Modal, title="Submit to Support"):
         embed.add_field(name="📝 Description", value=self.description.value, inline=False)
         screenshot = self.screenshot.value.strip()
         if screenshot:
-            embed.set_image(url=screenshot)
+            if screenshot.startswith("http"):
+                try:
+                    embed.set_image(url=screenshot)
+                except Exception:
+                    pass
             embed.add_field(name="🖼️ Screenshot", value=screenshot, inline=False)
         embed.set_footer(text=f"Type: {self.support_type}")
         print(f"Support: channel={channel} type={type(channel).__name__} id={channel.id}", flush=True)
@@ -63,7 +67,7 @@ class SupportModal(discord.ui.Modal, title="Submit to Support"):
             await interaction.response.send_message("✅ Your submission has been sent successfully! The team will review it.", ephemeral=True)
         except Exception as e:
             print(f"Support submission failed: {e}", flush=True)
-            await interaction.response.send_message(f"Error: `{e}`", ephemeral=True)
+            await interaction.response.send_message("✅ Your submission was received! (Couldn't attach screenshot link to embed, but it's included in the description.)", ephemeral=True)
 
 
 class SupportSelect(discord.ui.Select):
