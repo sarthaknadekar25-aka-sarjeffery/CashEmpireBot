@@ -85,6 +85,13 @@ class General(commands.Cog):
         embed.set_footer(text="Tip: Lucky Charms from /shop boost your gold pet chance!")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @app_commands.command(name="test", description="Test if the bot is working")
+    async def test(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="✅ Bot is Online", description="All systems operational!", color=discord.Color.green())
+        embed.set_thumbnail(url=pet_image_url("Forest Spirit", "Common"))
+        embed.add_field(name="Forest Spirit", value="Test image — send more pet images to replace the rest!")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(General(bot))

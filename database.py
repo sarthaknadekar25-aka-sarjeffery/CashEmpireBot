@@ -79,6 +79,10 @@ def get_player(data, user_id):
     return data[uid]
 
 
+PET_IMAGES = {
+    "Forest Spirit": "https://cdn.discordapp.com/attachments/1520718205981687960/1520718282154442863/image.png",
+}
+
 PET_IMAGE_STYLES = {
     "Common": "thumbs",
     "Uncommon": "bottts-neutral",
@@ -90,6 +94,9 @@ PET_IMAGE_STYLES = {
 
 
 def pet_image_url(pet_name, rarity="Common"):
+    custom = PET_IMAGES.get(pet_name)
+    if custom:
+        return custom
     style = PET_IMAGE_STYLES.get(rarity, "thumbs")
     return f"https://api.dicebear.com/9.x/{style}/png?seed={pet_name.replace(' ', '')}&size=128&radius=10"
 
