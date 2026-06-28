@@ -57,12 +57,13 @@ class SupportModal(discord.ui.Modal, title="Submit to Support"):
             embed.set_image(url=screenshot)
             embed.add_field(name="🖼️ Screenshot", value=screenshot, inline=False)
         embed.set_footer(text=f"Type: {self.support_type}")
+        print(f"Support: channel={channel} type={type(channel).__name__} id={channel.id}", flush=True)
         try:
             await channel.send(embed=embed)
             await interaction.response.send_message("✅ Your submission has been sent successfully! The team will review it.", ephemeral=True)
         except Exception as e:
             print(f"Support submission failed: {e}", flush=True)
-            await interaction.response.send_message("Failed to send. Check that the bot has **Send Messages** permission in the feedback channel.", ephemeral=True)
+            await interaction.response.send_message(f"Error: `{e}`", ephemeral=True)
 
 
 class SupportSelect(discord.ui.Select):
