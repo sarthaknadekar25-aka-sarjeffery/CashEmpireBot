@@ -68,11 +68,8 @@ class SellPriceModal(discord.ui.Modal, title="List Your Pet"):
             await interaction.response.send_message("Pet not found.", ephemeral=True)
             return
         pet = pets[self.pet_idx]
-        if pet.get("active"):
-            await interaction.response.send_message("Deactivate it first with `/activate`.", ephemeral=True)
-            return
         sold = pets.pop(self.pet_idx)
-        if pets and not any(p.get("active") for p in pets):
+        if sold.get("active") and pets:
             pets[0]["active"] = True
         save_data(data)
         rarity_colors = {"Common": 0x969696, "Uncommon": 0x2ECC71, "Rare": 0x3498DB, "Epic": 0x9B59B6, "Legendary": 0xFFD700, "Gold": 0xFFD700}
