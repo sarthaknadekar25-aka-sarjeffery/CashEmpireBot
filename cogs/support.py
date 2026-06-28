@@ -34,7 +34,12 @@ class SupportModal(discord.ui.Modal, title="Submit to Support"):
     async def on_submit(self, interaction: discord.Interaction):
         channel = interaction.client.get_channel(MAIN_SERVER_FEEDBACK_CHANNEL_ID)
         if not channel:
-            await interaction.response.send_message("Feedback channel not found. Contact an admin.", ephemeral=True)
+            try:
+                channel = await interaction.client.fetch_channel(MAIN_SERVER_FEEDBACK_CHANNEL_ID)
+            except Exception:
+                pass
+        if not channel:
+            await interaction.response.send_message("Bot is not in your main server. Use this link to invite it:\nhttps://discord.com/api/oauth2/authorize?client_id=1518885591587098694&permissions=8&scope=bot%20applications.commands", ephemeral=True)
             return
         embed = discord.Embed(
             title=self.type_label,
@@ -55,8 +60,9 @@ class SupportModal(discord.ui.Modal, title="Submit to Support"):
         try:
             await channel.send(embed=embed)
             await interaction.response.send_message("✅ Your submission has been sent successfully! The team will review it.", ephemeral=True)
-        except Exception:
-            await interaction.response.send_message("Failed to send submission. Try again later.", ephemeral=True)
+        except Exception as e:
+            print(f"Support submission failed: {e}", flush=True)
+            await interaction.response.send_message("Failed to send. Check that the bot has **Send Messages** permission in the feedback channel.", ephemeral=True)
 
 
 class SupportSelect(discord.ui.Select):
@@ -99,7 +105,6 @@ class Support(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="supportpanel", description="Post the permanent support panel in this channel")
-    @app_commands.default_permissions(manage_messages=True)
     async def supportpanel(self, interaction: discord.Interaction):
         if interaction.channel_id != GAME_SERVER_SUPPORT_CHANNEL_ID:
             await interaction.response.send_message(f"This command can only be used in the support channel.", ephemeral=True)
