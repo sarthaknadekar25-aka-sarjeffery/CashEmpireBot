@@ -59,6 +59,7 @@ def save_data(data):
             return
         except Exception:
             pass
+    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
