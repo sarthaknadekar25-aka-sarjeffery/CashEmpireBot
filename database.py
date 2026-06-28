@@ -79,7 +79,13 @@ def get_player(data, user_id):
     return data[uid]
 
 
-PET_IMAGES = {}
+PET_IMAGES = {
+    "Red Fox": "https://cdn.discordapp.com/attachments/1520718205981687960/1520734186225533058/image.png",
+    "Roe Deer": "https://cdn.discordapp.com/attachments/1520718205981687960/1520734314684223548/image.png",
+    "Raccoon": "https://cdn.discordapp.com/attachments/1520718205981687960/1520734423153250375/image.png",
+    "Gray Wolf": "https://cdn.discordapp.com/attachments/1520718205981687960/1520734630712443071/image.png",
+    "Golden Eagle": "https://cdn.discordapp.com/attachments/1520718205981687960/1520735249091264665/image.png",
+}
 
 PET_IMAGE_STYLES = {
     "Common": "thumbs",
