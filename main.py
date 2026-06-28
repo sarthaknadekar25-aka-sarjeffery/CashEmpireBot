@@ -25,4 +25,6 @@ class MyBot(commands.Bot):
 
 
 bot = MyBot()
+if not DISCORD_TOKEN:
+    raise RuntimeError("DISCORD_TOKEN not set in .env or Railway Variables")
 bot.run(DISCORD_TOKEN)
