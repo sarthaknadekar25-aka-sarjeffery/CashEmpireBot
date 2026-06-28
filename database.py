@@ -33,9 +33,27 @@ def load_data():
             cur.execute("SELECT uid, data FROM players")
             rows = cur.fetchall()
             cur.close()
-            return {row[0]: dict(row[1]) for row in rows}
+            if rows:
+                return {row[0]: dict(row[1]) for row in rows}
         except Exception:
             pass
+        if os.path.exists(DATA_FILE):
+            try:
+                with open(DATA_FILE) as f:
+                    file_data = json.load(f)
+                if file_data:
+                    cur = _db_conn.cursor()
+                    cur.execute("DELETE FROM players")
+                    if file_data:
+                        psycopg2.extras.execute_values(
+                            cur,
+                            "INSERT INTO players (uid, data) VALUES %s",
+                            [(uid, json.dumps(pd)) for uid, pd in file_data.items()]
+                        )
+                    cur.close()
+                    return file_data
+            except Exception:
+                pass
     if not os.path.exists("data"):
         os.makedirs("data")
     if os.path.exists(DATA_FILE):
