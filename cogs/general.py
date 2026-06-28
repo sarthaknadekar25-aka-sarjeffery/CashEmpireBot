@@ -67,7 +67,7 @@ class General(commands.Cog):
         embed.add_field(name="🐾 Pets", value="`/mypets` `/petshop`", inline=False)
         embed.add_field(name="🤝 Trading", value="`/sell`", inline=False)
         embed.add_field(name="📊 Leaderboard", value="`/lb` `/xplb` `/rank`", inline=False)
-        embed.add_field(name="⚙️ Utility", value="`/ping` `/help` `/guide`", inline=False)
+        embed.add_field(name="⚙️ Utility", value="`/ping` `/help` `/guide` `/supportpanel`", inline=False)
         embed.add_field(name="👑 Owner", value="`/addcoins` `/removecoins` `/setbalance` `/resetuser` `/broadcast` `/clear` `/giveaway` `/announcement`", inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
