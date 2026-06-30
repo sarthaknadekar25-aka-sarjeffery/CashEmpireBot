@@ -3,6 +3,7 @@ from discord.ext import commands
 import json
 import os
 import asyncio
+import traceback
 
 GUIDE_CHANNEL_ID = 1499070331594477798
 RULES_CHANNEL_ID = 1515328387294433390
@@ -48,19 +49,25 @@ RULES_EMBED.set_footer(text="Violating rules may result in warnings, mutes, or b
 
 
 def load_message_ids():
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR, exist_ok=True)
-    if os.path.exists(MESSAGES_FILE):
-        with open(MESSAGES_FILE, "r") as f:
-            return json.load(f)
+    try:
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR, exist_ok=True)
+        if os.path.exists(MESSAGES_FILE):
+            with open(MESSAGES_FILE, "r") as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"[Permanent] Failed to load message IDs: {e}", flush=True)
     return {"guide": None, "rules": None}
 
 
 def save_message_ids(ids):
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR, exist_ok=True)
-    with open(MESSAGES_FILE, "w") as f:
-        json.dump(ids, f, indent=2)
+    try:
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR, exist_ok=True)
+        with open(MESSAGES_FILE, "w") as f:
+            json.dump(ids, f, indent=2)
+    except Exception as e:
+        print(f"[Permanent] Failed to save message IDs: {e}", flush=True)
 
 
 class PermanentMessages(commands.Cog):
@@ -68,42 +75,69 @@ class PermanentMessages(commands.Cog):
         self.bot = bot
         self.ready = False
 
+    async def send_safe(self, channel, embed, label):
+        try:
+            perms = channel.permissions_for(channel.guild.me) if channel.guild else None
+            can_mention = perms and perms.mention_everyone
+            print(f"[Permanent] Sending {label} to #{channel.name} (can_mention_everyone={can_mention})", flush=True)
+            if can_mention:
+                return await channel.send(content="\u200b@everyone", embed=embed)
+            else:
+                return await channel.send(embed=embed)
+        except discord.Forbidden:
+            print(f"[Permanent] Forbidden sending {label} - no permissions", flush=True)
+            try:
+                return await channel.send(embed=embed)
+            except Exception as e2:
+                print(f"[Permanent] Still failed {label}: {e2}", flush=True)
+                return None
+        except Exception as e:
+            print(f"[Permanent] Error sending {label}: {e}", flush=True)
+            traceback.print_exc()
+            return None
+
     async def post_guide(self):
         channel = self.bot.get_channel(GUIDE_CHANNEL_ID)
         if not channel:
+            print(f"[Permanent] Guide channel {GUIDE_CHANNEL_ID} not found", flush=True)
             return None
-        return await channel.send(content="\u200b@everyone", embed=GUIDE_EMBED)
+        return await self.send_safe(channel, GUIDE_EMBED, "guide")
 
     async def post_rules(self):
         channel = self.bot.get_channel(RULES_CHANNEL_ID)
         if not channel:
+            print(f"[Permanent] Rules channel {RULES_CHANNEL_ID} not found", flush=True)
             return None
-        return await channel.send(content="\u200b@everyone", embed=RULES_EMBED)
+        return await self.send_safe(channel, RULES_EMBED, "rules")
 
     async def ensure_messages(self):
         ids = load_message_ids()
         changed = False
-        tasks = []
 
-        for key, channel_id, post_fn in [
-            ("guide", GUIDE_CHANNEL_ID, self.post_guide),
-            ("rules", RULES_CHANNEL_ID, self.post_rules),
+        for key, channel_id, post_fn, label in [
+            ("guide", GUIDE_CHANNEL_ID, self.post_guide, "guide"),
+            ("rules", RULES_CHANNEL_ID, self.post_rules, "rules"),
         ]:
             msg_id = ids.get(key)
             channel = self.bot.get_channel(channel_id)
             if not channel:
+                print(f"[Permanent] Channel {channel_id} unavailable for {label}", flush=True)
                 continue
             if msg_id:
                 try:
                     msg = await channel.fetch_message(msg_id)
                     if msg:
+                        print(f"[Permanent] {label} already exists (ID: {msg_id})", flush=True)
                         continue
-                except:
-                    pass
+                except discord.NotFound:
+                    print(f"[Permanent] {label} message {msg_id} deleted, re-posting", flush=True)
+                except Exception as e:
+                    print(f"[Permanent] Error fetching {label} message: {e}", flush=True)
             new_msg = await post_fn()
             if new_msg:
                 ids[key] = new_msg.id
                 changed = True
+                print(f"[Permanent] {label} posted (ID: {new_msg.id})", flush=True)
 
         if changed:
             save_message_ids(ids)
@@ -113,7 +147,9 @@ class PermanentMessages(commands.Cog):
         if self.ready:
             return
         self.ready = True
-        await asyncio.sleep(5)
+        print("[Permanent] Bot ready, will post messages in 10s", flush=True)
+        await asyncio.sleep(10)
+        print("[Permanent] Attempting to ensure messages...", flush=True)
         await self.ensure_messages()
 
     @commands.Cog.listener()
@@ -123,8 +159,10 @@ class PermanentMessages(commands.Cog):
 
         for key in ("guide", "rules"):
             if ids.get(key) == payload.message_id:
+                print(f"[Permanent] {key} message deleted, re-posting", flush=True)
                 channel = self.bot.get_channel(payload.channel_id)
                 if not channel:
+                    print(f"[Permanent] Channel for {key} not found on delete", flush=True)
                     return
                 if key == "guide":
                     new_msg = await self.post_guide()

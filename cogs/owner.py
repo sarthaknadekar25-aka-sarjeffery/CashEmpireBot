@@ -144,13 +144,20 @@ class Owner(commands.Cog):
         await interaction.response.send_modal(GiveawayModal())
 
     @app_commands.command(name="announcement", description="[Owner] Send an announcement embed")
-    @app_commands.describe(message="The announcement message")
-    async def announcement(self, interaction: discord.Interaction, message: str):
+    @app_commands.describe(title="Announcement title", description="Main announcement message", event="Event type (optional)", location="Location (optional)", time="Time/date (optional)")
+    async def announcement(self, interaction: discord.Interaction, title: str = "📢 ANNOUNCEMENT", description: str = None, event: str = None, location: str = None, time: str = None):
         embed = discord.Embed(
-            title="📢 ANNOUNCEMENT",
-            description=message,
+            title=title,
             color=discord.Color.from_rgb(212, 175, 55)
         )
+        if description:
+            embed.add_field(name="Description", value=description, inline=False)
+        if event:
+            embed.add_field(name="Event Type", value=event, inline=True)
+        if location:
+            embed.add_field(name="Location", value=location, inline=True)
+        if time:
+            embed.add_field(name="Time", value=time, inline=True)
         embed.set_footer(text=f"Posted by {interaction.user.display_name}")
         await interaction.response.send_message(embed=embed)
 
