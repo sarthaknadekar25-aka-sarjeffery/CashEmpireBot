@@ -13,40 +13,43 @@ GUIDE_CHANNEL_ID = 1499070331594477798
 RULES_CHANNEL_ID = 1515328387294433390
 PERM_FILE = "data/permanent_messages.json"
 
-GOLD = discord.Color.from_rgb(212, 175, 55)
-DARK = discord.Color.from_rgb(30, 30, 35)
-
-GUIDE_EMBED = discord.Embed(
-    title="✦ HOW TO PLAY ✦",
-    description="Welcome to **CashEmpire** — earn coins, collect pets, and climb to the top!",
-    color=DARK
+GUIDE_TEXT = (
+    "# ✦ HOW TO PLAY ✦\n"
+    "Welcome to **CashEmpire** — earn coins, collect pets, climb to the top!\n\n"
+    "## 💰 Earning\n"
+    "`/daily` — daily reward\n"
+    "`/work` — earn coins\n"
+    "`/gamble` — risk it all\n"
+    "`/shop` — buy 2x/5x boosters\n\n"
+    "## 🐾 Pets\n"
+    "`/petshop` — buy crates (1% gold pet!)\n"
+    "`/mypets` — toggle active pet for multiplier\n\n"
+    "## 📈 Progress\n"
+    "`/rank` — your stats\n"
+    "`/lb` — coin leaderboard\n"
+    "`/xplb` — XP leaderboard\n\n"
+    "## 🔄 Trading\n"
+    "`/sell` — list pets for sale\n"
+    "Trade in <#1518911361554321510>\n\n"
+    "## 📋 All Commands\n"
+    "`balance` `daily` `work` `gamble` `transfer` `shop` `petshop` `mypets` `sell` `lb` `xplb` `rank` `flex` `guide` `supportpanel`\n\n"
+    "*Tip: having an active pet boosts ALL your earnings!*"
 )
-GUIDE_EMBED.add_field(name="💰 EARNING", value="`/daily` — daily reward\n`/work` — earn coins\n`/gamble` — risk it all\n`/shop` — buy 2x/5x boosters", inline=True)
-GUIDE_EMBED.add_field(name="🐾 PETS", value="`/petshop` — buy crates (1% gold pet!)\n`/mypets` — toggle active pet for multiplier", inline=True)
-GUIDE_EMBED.add_field(name="📈 PROGRESS", value="`/rank` — your stats\n`/lb` — coin leaderboard\n`/xplb` — XP leaderboard", inline=True)
-GUIDE_EMBED.add_field(name="🔄 TRADING", value="`/sell` — list pets for sale\nTrade in <#1518911361554321510>", inline=True)
-GUIDE_EMBED.add_field(name="📋 ALL COMMANDS", value="`balance` `daily` `work` `gamble` `transfer` `shop` `petshop` `mypets` `sell` `lb` `xplb` `rank` `flex` `guide` `supportpanel`", inline=False)
-GUIDE_EMBED.set_footer(text="Tip: having an active pet boosts ALL your earnings!")
-GUIDE_EMBED.set_thumbnail(url="https://cdn.discordapp.com/embed/avatars/0.png")
 
-RULES_EMBED = discord.Embed(
-    title="📜 RULES",
-    description=(
-        "1. Be respectful — no harassment, hate speech, or bullying.\n"
-        "2. No spamming, flooding, or excessive emojis.\n"
-        "3. No exploiting, cheating, or bug abuse.\n"
-        "4. No alternate accounts for unfair rewards.\n"
-        "5. No begging for money, pets, or roles.\n"
-        "6. Keep chats in correct channels.\n"
-        "7. No advertising without staff permission.\n"
-        "8. Do not impersonate staff or members.\n"
-        "9. Follow staff instructions.\n"
-        "10. Have fun and play fair!"
-    ),
-    color=DARK
+RULES_TEXT = (
+    "# 📜 RULES\n\n"
+    "**1.** Be respectful — no harassment, hate speech, or bullying.\n"
+    "**2.** No spamming, flooding, or excessive emojis.\n"
+    "**3.** No exploiting, cheating, or bug abuse.\n"
+    "**4.** No alternate accounts for unfair rewards.\n"
+    "**5.** No begging for money, pets, or roles.\n"
+    "**6.** Keep chats in correct channels.\n"
+    "**7.** No advertising without staff permission.\n"
+    "**8.** Do not impersonate staff or members.\n"
+    "**9.** Follow staff instructions.\n"
+    "**10.** Have fun and play fair!\n\n"
+    "*Violations may result in warnings, mutes, or bans.*"
 )
-RULES_EMBED.set_footer(text="Violations may result in warnings, mutes, or bans.")
-RULES_EMBED.set_thumbnail(url="https://cdn.discordapp.com/embed/avatars/0.png")
 
 
 def load_ids():
@@ -71,7 +74,7 @@ def save_ids(ids):
         print(f"[Perm] save error: {e}", flush=True)
 
 
-async def ensure_permanent_message(bot, channel_id, embed, key):
+async def ensure_permanent_message(bot, channel_id, text, key):
     channel = await bot.fetch_channel(channel_id)
     ids = load_ids()
     msg_id = ids.get(key)
@@ -86,7 +89,7 @@ async def ensure_permanent_message(bot, channel_id, embed, key):
             print(f"[Perm] Old {key} not found, posting fresh", flush=True)
 
     try:
-        msg = await channel.send(content="||@everyone||", embed=embed)
+        msg = await channel.send(content=f"@everyone\n\n{text}")
         ids[key] = msg.id
         save_ids(ids)
         print(f"[Perm] {key} posted (ID: {msg.id})", flush=True)
@@ -122,11 +125,11 @@ class MyBot(commands.Bot):
         await asyncio.sleep(5)
         print("[Perm] Posting permanent messages...", flush=True)
         try:
-            await ensure_permanent_message(self, GUIDE_CHANNEL_ID, GUIDE_EMBED, "guide")
+            await ensure_permanent_message(self, GUIDE_CHANNEL_ID, GUIDE_TEXT, "guide")
         except Exception as e:
             print(f"[Perm] Guide error: {e}", flush=True)
         try:
-            await ensure_permanent_message(self, RULES_CHANNEL_ID, RULES_EMBED, "rules")
+            await ensure_permanent_message(self, RULES_CHANNEL_ID, RULES_TEXT, "rules")
         except Exception as e:
             print(f"[Perm] Rules error: {e}", flush=True)
 
@@ -138,9 +141,9 @@ class MyBot(commands.Bot):
                 try:
                     channel = await self.fetch_channel(payload.channel_id)
                     if key == "guide":
-                        msg = await channel.send(content="||@everyone||", embed=GUIDE_EMBED)
+                        msg = await channel.send(content=f"@everyone\n\n{GUIDE_TEXT}")
                     else:
-                        msg = await channel.send(content="||@everyone||", embed=RULES_EMBED)
+                        msg = await channel.send(content=f"@everyone\n\n{RULES_TEXT}")
                     ids[key] = msg.id
                     changed = True
                     print(f"[Perm] Re-posted {key} after delete", flush=True)
