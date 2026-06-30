@@ -168,6 +168,38 @@ class Owner(commands.Cog):
         embed.set_footer(text=footer or f"Posted by {interaction.user.display_name}")
         await interaction.response.send_message(embed=embed)
 
+    @app_commands.command(name="permcheck", description="[Owner] Check bot permissions in channels")
+    async def permcheck(self, interaction: discord.Interaction):
+        channels = {
+            "Guide": 1499070331594477798,
+            "Rules": 1515328387294433390,
+            "Bot Commands": 1499070938367660083,
+            "Support Panel": 1520760975995699410,
+            "Feedback": 1488847189471133827,
+        }
+        lines = []
+        for name, cid in channels.items():
+            ch = interaction.client.get_channel(cid)
+            if not ch:
+                try:
+                    ch = await interaction.client.fetch_channel(cid)
+                except:
+                    lines.append(f"❌ {name} — channel not found")
+                    continue
+            me = ch.guild.me if ch.guild else None
+            if not me:
+                lines.append(f"❌ {name} — not in guild")
+                continue
+            perms = ch.permissions_for(me)
+            can_send = perms.send_messages
+            can_read = perms.read_messages
+            can_mention = perms.mention_everyone
+            can_embed = perms.embed_links
+            status = "✅" if (can_send and can_read) else "❌"
+            lines.append(f"{status} {name} — Send:{can_send} Read:{can_read} Embed:{can_embed} Mention:{can_mention}")
+        embed = discord.Embed(title="🔍 Permission Check", description="\n".join(lines), color=discord.Color.from_rgb(30, 30, 35))
+        await interaction.response.send_message(embed=embed)
+
 
 async def setup(bot):
     await bot.add_cog(Owner(bot))
