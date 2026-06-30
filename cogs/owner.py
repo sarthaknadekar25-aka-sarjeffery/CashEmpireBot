@@ -154,59 +154,6 @@ class Owner(commands.Cog):
         embed.set_footer(text=f"Posted by {interaction.user.display_name}")
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="postguide", description="[Owner] Post the How to Play guide")
-    async def postguide(self, interaction: discord.Interaction):
-        channel = interaction.client.get_channel(1499070331594477798)
-        if not channel:
-            await interaction.response.send_message("Channel not found.", ephemeral=True)
-            return
-        content = "\u200b@everyone"
-        embed = discord.Embed(
-            title="✦ HOW TO PLAY — CashEmpire ✦",
-            description="Earn coins, collect pets, climb the leaderboard!",
-            color=discord.Color.from_rgb(30, 30, 35)
-        )
-        embed.add_field(name="1️⃣ Start Playing", value="Use `/daily` and `/work` to earn coins. You start with **100 coins**!", inline=False)
-        embed.add_field(name="2️⃣ Buy Boosters", value="Use `/shop` to buy 2x/5x boosters that multiply your earnings for 24h.", inline=False)
-        embed.add_field(name="3️⃣ Open Crates", value="Use `/petshop` to buy crates. Each crate has 5 pets with **1% chance** for a rare **Gold pet**!", inline=False)
-        embed.add_field(name="4️⃣ Pets & XP", value="Use `/mypets` to toggle your best pet ON — its multiplier boosts all earnings. You also earn **XP** by chatting and using commands!", inline=False)
-        embed.add_field(name="5️⃣ Buy & Sell Pets", value="Buy pets from `/petshop` crates. Sell unwanted pets using `/sell` in the trading channel — set a price or let players bargain!", inline=False)
-        embed.add_field(name="6️⃣ Climb the Ranks", value="Check `/lb` (coins) and `/xplb` (XP) to see the top 25 players. Daily leaderboards post automatically!", inline=False)
-        embed.add_field(name="7️⃣ Useful Commands", value="`/balance` `/daily` `/work` `/gamble` `/transfer` `/shop` `/petshop` `/mypets` `/sell` `/lb` `/xplb` `/rank` `/flex` `/guide` `/supportpanel`", inline=False)
-        embed.set_footer(text="Tip: Lucky Charms from /shop boost your gold pet chance!")
-        await channel.send(content=content, embed=embed)
-        await interaction.response.send_message("✅ Guide posted!", ephemeral=True)
-
-    @app_commands.command(name="postrules", description="[Owner] Post the server rules")
-    async def postrules(self, interaction: discord.Interaction):
-        channel = interaction.client.get_channel(1515328387294433390)
-        if not channel:
-            await interaction.response.send_message("Channel not found.", ephemeral=True)
-            return
-        content = "\u200b@everyone"
-        embed = discord.Embed(
-            title="📜 CASH EMPIRE RULES",
-            description="Please read and follow all rules to keep the community enjoyable.",
-            color=discord.Color.from_rgb(30, 30, 35)
-        )
-        rules = [
-            "Be respectful to all members — no harassment, hate speech, or bullying.",
-            "No spamming, flooding, or excessive use of emojis.",
-            "Do not exploit, cheat, or abuse bugs. Report bugs instead.",
-            "Do not use alternate accounts to gain unfair rewards.",
-            "No begging for money, pets, or roles.",
-            "Keep chats in the correct channels.",
-            "No advertising or self-promotion without staff permission.",
-            "Do not impersonate staff, developers, or other members.",
-            "Follow all staff instructions. If you have an issue, open a support ticket.",
-            "Have fun, play fair, and help make the community enjoyable for everyone.",
-        ]
-        for i, rule in enumerate(rules, 1):
-            embed.add_field(name=f"Rule {i}", value=rule, inline=False)
-        embed.set_footer(text="Violating rules may result in warnings, mutes, or bans.")
-        await channel.send(content=content, embed=embed)
-        await interaction.response.send_message("✅ Rules posted!", ephemeral=True)
-
 
 async def setup(bot):
     await bot.add_cog(Owner(bot))
