@@ -13,42 +13,40 @@ GUIDE_CHANNEL_ID = 1499070331594477798
 RULES_CHANNEL_ID = 1515328387294433390
 PERM_FILE = "data/permanent_messages.json"
 
-VIP_DARK = discord.Color.from_rgb(30, 30, 35)
+GOLD = discord.Color.from_rgb(212, 175, 55)
+DARK = discord.Color.from_rgb(30, 30, 35)
 
 GUIDE_EMBED = discord.Embed(
-    title="✦ HOW TO PLAY — CashEmpire ✦",
-    description="Earn coins, collect pets, climb the leaderboard!",
-    color=VIP_DARK
+    title="✦ HOW TO PLAY ✦",
+    description="Welcome to **CashEmpire** — earn coins, collect pets, and climb to the top!",
+    color=DARK
 )
-GUIDE_EMBED.add_field(name="1️⃣ Start Playing", value="Use `/daily` and `/work` to earn coins. You start with **100 coins**!", inline=False)
-GUIDE_EMBED.add_field(name="2️⃣ Buy Boosters", value="Use `/shop` to buy 2x/5x boosters that multiply your earnings for 24h.", inline=False)
-GUIDE_EMBED.add_field(name="3️⃣ Open Crates", value="Use `/petshop` to buy crates. Each crate has 5 pets with **1% chance** for a rare **Gold pet**!", inline=False)
-GUIDE_EMBED.add_field(name="4️⃣ Pets & XP", value="Use `/mypets` to toggle your best pet ON — its multiplier boosts all earnings. You also earn **XP** by chatting and using commands!", inline=False)
-GUIDE_EMBED.add_field(name="5️⃣ Buy & Sell Pets", value="Buy pets from `/petshop` crates. Sell unwanted pets using `/sell` in the trading channel — set a price or let players bargain!", inline=False)
-GUIDE_EMBED.add_field(name="6️⃣ Climb the Ranks", value="Check `/lb` (coins) and `/xplb` (XP) to see the top 25 players. Daily leaderboards post automatically!", inline=False)
-GUIDE_EMBED.add_field(name="7️⃣ Useful Commands", value="`/balance` `/daily` `/work` `/gamble` `/transfer` `/shop` `/petshop` `/mypets` `/sell` `/lb` `/xplb` `/rank` `/flex` `/guide` `/supportpanel`", inline=False)
-GUIDE_EMBED.set_footer(text="Tip: Lucky Charms from /shop boost your gold pet chance!")
+GUIDE_EMBED.add_field(name="💰 EARNING", value="`/daily` — daily reward\n`/work` — earn coins\n`/gamble` — risk it all\n`/shop` — buy 2x/5x boosters", inline=True)
+GUIDE_EMBED.add_field(name="🐾 PETS", value="`/petshop` — buy crates (1% gold pet!)\n`/mypets` — toggle active pet for multiplier", inline=True)
+GUIDE_EMBED.add_field(name="📈 PROGRESS", value="`/rank` — your stats\n`/lb` — coin leaderboard\n`/xplb` — XP leaderboard", inline=True)
+GUIDE_EMBED.add_field(name="🔄 TRADING", value="`/sell` — list pets for sale\nTrade in <#1518911361554321510>", inline=True)
+GUIDE_EMBED.add_field(name="📋 ALL COMMANDS", value="`balance` `daily` `work` `gamble` `transfer` `shop` `petshop` `mypets` `sell` `lb` `xplb` `rank` `flex` `guide` `supportpanel`", inline=False)
+GUIDE_EMBED.set_footer(text="Tip: having an active pet boosts ALL your earnings!")
+GUIDE_EMBED.set_thumbnail(url="https://cdn.discordapp.com/embed/avatars/0.png")
 
-RULES_LIST = [
-    "Be respectful to all members — no harassment, hate speech, or bullying.",
-    "No spamming, flooding, or excessive use of emojis.",
-    "Do not exploit, cheat, or abuse bugs. Report bugs instead.",
-    "Do not use alternate accounts to gain unfair rewards.",
-    "No begging for money, pets, or roles.",
-    "Keep chats in the correct channels.",
-    "No advertising or self-promotion without staff permission.",
-    "Do not impersonate staff, developers, or other members.",
-    "Follow all staff instructions. If you have an issue, open a support ticket.",
-    "Have fun, play fair, and help make the community enjoyable for everyone.",
-]
 RULES_EMBED = discord.Embed(
-    title="📜 CASH EMPIRE RULES",
-    description="Please read and follow all rules to keep the community enjoyable.",
-    color=VIP_DARK
+    title="📜 RULES",
+    description=(
+        "1. Be respectful — no harassment, hate speech, or bullying.\n"
+        "2. No spamming, flooding, or excessive emojis.\n"
+        "3. No exploiting, cheating, or bug abuse.\n"
+        "4. No alternate accounts for unfair rewards.\n"
+        "5. No begging for money, pets, or roles.\n"
+        "6. Keep chats in correct channels.\n"
+        "7. No advertising without staff permission.\n"
+        "8. Do not impersonate staff or members.\n"
+        "9. Follow staff instructions.\n"
+        "10. Have fun and play fair!"
+    ),
+    color=DARK
 )
-for i, rule in enumerate(RULES_LIST, 1):
-    RULES_EMBED.add_field(name=f"Rule {i}", value=rule, inline=False)
-RULES_EMBED.set_footer(text="Violating rules may result in warnings, mutes, or bans.")
+RULES_EMBED.set_footer(text="Violations may result in warnings, mutes, or bans.")
+RULES_EMBED.set_thumbnail(url="https://cdn.discordapp.com/embed/avatars/0.png")
 
 
 def load_ids():
@@ -82,13 +80,13 @@ async def ensure_permanent_message(bot, channel_id, embed, key):
         try:
             existing = await channel.fetch_message(msg_id)
             if existing:
-                print(f"[Perm] {key} already exists (ID: {msg_id})", flush=True)
-                return
+                await existing.delete()
+                print(f"[Perm] Deleted old {key} (ID: {msg_id})", flush=True)
         except:
-            print(f"[Perm] {key} message deleted, re-posting", flush=True)
+            print(f"[Perm] Old {key} not found, posting fresh", flush=True)
 
     try:
-        msg = await channel.send(embed=embed)
+        msg = await channel.send(content="||@everyone||", embed=embed)
         ids[key] = msg.id
         save_ids(ids)
         print(f"[Perm] {key} posted (ID: {msg.id})", flush=True)
@@ -98,7 +96,7 @@ async def ensure_permanent_message(bot, channel_id, embed, key):
 
 class MyBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix="!", intents=intents, help_command=None)
+        super().__init__(command_prefix="!", intents=intents, help_command=None, allowed_mentions=discord.AllowedMentions(everyone=True, roles=True))
 
     async def setup_hook(self):
         for cog in ["cogs.economy", "cogs.welcome", "cogs.general", "cogs.shop", "cogs.pet_shop", "cogs.trading", "cogs.leaderboard", "cogs.owner", "cogs.support"]:
@@ -140,9 +138,9 @@ class MyBot(commands.Bot):
                 try:
                     channel = await self.fetch_channel(payload.channel_id)
                     if key == "guide":
-                        msg = await channel.send(embed=GUIDE_EMBED)
+                        msg = await channel.send(content="||@everyone||", embed=GUIDE_EMBED)
                     else:
-                        msg = await channel.send(embed=RULES_EMBED)
+                        msg = await channel.send(content="||@everyone||", embed=RULES_EMBED)
                     ids[key] = msg.id
                     changed = True
                     print(f"[Perm] Re-posted {key} after delete", flush=True)
