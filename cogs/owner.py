@@ -143,22 +143,29 @@ class Owner(commands.Cog):
     async def giveaway(self, interaction: discord.Interaction):
         await interaction.response.send_modal(GiveawayModal())
 
-    @app_commands.command(name="announcement", description="[Owner] Send an announcement embed")
-    @app_commands.describe(title="Announcement title", description="Main announcement message", event="Event type (optional)", location="Location (optional)", time="Time/date (optional)")
-    async def announcement(self, interaction: discord.Interaction, title: str = "📢 ANNOUNCEMENT", description: str = None, event: str = None, location: str = None, time: str = None):
+    @app_commands.command(name="announcement", description="[Owner] Send a clean announcement")
+    @app_commands.describe(title="Big announcement title", subtitle="Subtitle or tagline (optional)", description="Main message — use # ## for big text (optional)", event="Event type (optional)", location="Where (optional)", time="When (optional)", footer="Small footer text (optional)")
+    async def announcement(self, interaction: discord.Interaction, title: str = "📢 ANNOUNCEMENT", subtitle: str = None, description: str = None, event: str = None, location: str = None, time: str = None, footer: str = None):
+        desc_parts = []
+        if subtitle:
+            desc_parts.append(f"### {subtitle}")
+        if description:
+            desc_parts.append(description)
+
         embed = discord.Embed(
             title=title,
+            description="\n\n".join(desc_parts) if desc_parts else None,
             color=discord.Color.from_rgb(212, 175, 55)
         )
-        if description:
-            embed.add_field(name="Description", value=description, inline=False)
         if event:
-            embed.add_field(name="Event Type", value=event, inline=True)
+            embed.add_field(name="▸ Event", value=event, inline=True)
         if location:
-            embed.add_field(name="Location", value=location, inline=True)
+            embed.add_field(name="▸ Location", value=location, inline=True)
         if time:
-            embed.add_field(name="Time", value=time, inline=True)
-        embed.set_footer(text=f"Posted by {interaction.user.display_name}")
+            embed.add_field(name="▸ Time", value=time, inline=True)
+        if event or location or time:
+            embed.add_field(name="\u200b", value="\u200b", inline=True)
+        embed.set_footer(text=footer or f"Posted by {interaction.user.display_name}")
         await interaction.response.send_message(embed=embed)
 
 
