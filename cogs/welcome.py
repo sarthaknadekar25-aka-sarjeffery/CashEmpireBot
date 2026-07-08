@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from config import WELCOME_CHANNEL_ID, GUILD_ID
+from config import WELCOME_CHANNEL_ID, LEAVE_CHANNEL_ID, GUILD_ID
 from datetime import datetime
 
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
@@ -40,7 +40,7 @@ class Welcome(commands.Cog):
     async def on_member_remove(self, member):
         if member.guild.id != GUILD_ID:
             return
-        channel = self.bot.get_channel(WELCOME_CHANNEL_ID)
+        channel = self.bot.get_channel(LEAVE_CHANNEL_ID)
         if not channel:
             return
         member_count = len(member.guild.members)
