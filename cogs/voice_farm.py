@@ -47,6 +47,11 @@ class VoiceFarm(commands.Cog):
     async def update_status(self, vc):
         channel = self.bot.get_channel(VOICE_FARM_TEXT_CHANNEL_ID)
         if not channel:
+            try:
+                channel = vc.text_channel
+            except:
+                channel = None
+        if not channel:
             return
         now = datetime.now(timezone.utc)
         lines = []
