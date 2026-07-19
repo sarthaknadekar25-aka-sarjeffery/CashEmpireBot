@@ -11,6 +11,7 @@ class VoiceFarm(commands.Cog):
         self.bot = bot
         self.vc_users = {}
         self.status_message = None
+        self.loop_count = 0
         self.voice_farm_loop.start()
 
     def cog_unload(self):
@@ -21,12 +22,20 @@ class VoiceFarm(commands.Cog):
         if member.bot:
             return
         if after.channel and after.channel.id == VOICE_FARM_CHANNEL_ID:
-            self.vc_users[member.id] = {"joined": datetime.now(timezone.utc)}
+            self.vc_users[member.id] = {"joined": datetime.now(timezone.utc), "session_earned": 0}
+            await self.announce_join(member)
         elif before.channel and before.channel.id == VOICE_FARM_CHANNEL_ID:
             self.vc_users.pop(member.id, None)
 
+    async def announce_join(self, member):
+        channel = self.bot.get_channel(VOICE_FARM_TEXT_CHANNEL_ID)
+        if not channel:
+            return
+        await channel.send(f"{member.mention} joined AFK farm! 🎧")
+
     @tasks.loop(seconds=10)
     async def voice_farm_loop(self):
+        self.loop_count += 1
         vc = self.bot.get_channel(VOICE_FARM_CHANNEL_ID)
         if not vc:
             return
@@ -36,49 +45,49 @@ class VoiceFarm(commands.Cog):
                 self.vc_users.pop(uid, None)
         for mid in current_ids:
             if mid not in self.vc_users:
-                self.vc_users[mid] = {"joined": datetime.now(timezone.utc)}
-        if self.vc_users:
-            data = load_data()
-            for uid in self.vc_users:
-                get_player(data, uid)["balance"] += 20
-            save_data(data)
+                self.vc_users[mid] = {"joined": datetime.now(timezone.utc), "session_earned": 0}
+        if not self.vc_users:
+            return
+
+        data = load_data()
+        is_bonus = self.loop_count % 60 == 0
+
+        for uid in self.vc_users:
+            player = get_player(data, uid)
+            player["balance"] += 2
+            self.vc_users[uid]["session_earned"] += 2
+            if is_bonus:
+                player["balance"] += 100
+                self.vc_users[uid]["session_earned"] += 100
+
+        save_data(data)
         await self.update_status(vc)
 
     async def update_status(self, vc):
         channel = self.bot.get_channel(VOICE_FARM_TEXT_CHANNEL_ID)
-        if channel:
-            print(f"[Farm] Using config text channel: {channel.name} ({channel.id})", flush=True)
-        else:
-            try:
-                channel = vc.text_channel
-                if channel:
-                    print(f"[Farm] Using VC text channel: {channel.name} ({channel.id})", flush=True)
-                else:
-                    print(f"[Farm] vc.text_channel returned None", flush=True)
-            except Exception as e:
-                print(f"[Farm] vc.text_channel error: {e}", flush=True)
-                channel = None
         if not channel:
-            print(f"[Farm] No text channel found - skipping panel update", flush=True)
             return
         now = datetime.now(timezone.utc)
         lines = []
-        total_earned = 0
+        total_session = 0
         for uid, info in list(self.vc_users.items()):
             member = vc.guild.get_member(uid)
             name = member.display_name if member else "Unknown"
             delta = now - info["joined"]
             minutes = int(delta.total_seconds() // 60)
             seconds = int(delta.total_seconds() % 60)
-            earned = int(delta.total_seconds()) * 2
-            total_earned += earned
-            lines.append(f"**{name}** — {minutes}m {seconds}s (+{earned} coins)")
+            session = info["session_earned"]
+            total_session += session
+            mention = member.mention if member else name
+            lines.append(f"{mention} — {minutes}m {seconds}s — +{session} coins")
+        lines.append("")
+        lines.append("**2 coins per 10s** | **+100 coins every 10 min**")
         embed = discord.Embed(
             title="🎧 AFK Farm",
             description="\n".join(lines) if lines else "No one is farming.",
             color=discord.Color.from_rgb(30, 30, 35)
         )
-        embed.set_footer(text=f"2 coins/sec | Total earned: {total_earned} coins")
+        embed.set_footer(text=f"Total session earned: {total_session} coins")
         if self.status_message:
             try:
                 await self.status_message.edit(embed=embed)
