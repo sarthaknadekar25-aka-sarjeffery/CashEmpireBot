@@ -13,6 +13,7 @@ from config import DISCORD_TOKEN, GUILD_ID
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
+intents.voice_states = True
 
 
 class MyBot(commands.Bot):
