@@ -1,6 +1,10 @@
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+_BASE = os.path.dirname(os.path.abspath(__file__))
+os.chdir(_BASE)
+if _BASE not in sys.path:
+    sys.path.insert(0, _BASE)
 
 import discord
 from discord.ext import commands
@@ -16,8 +20,18 @@ class MyBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents, help_command=None, allowed_mentions=discord.AllowedMentions(everyone=True, roles=True))
 
     async def setup_hook(self):
-        for cog in ["cogs.economy", "cogs.welcome", "cogs.general", "cogs.shop", "cogs.pet_shop", "cogs.trading", "cogs.leaderboard", "cogs.owner", "cogs.support", "cogs.voice_farm"]:
-            await self.load_extension(cog)
+        import cogs.economy
+        import cogs.welcome
+        import cogs.general
+        import cogs.shop
+        import cogs.pet_shop
+        import cogs.trading
+        import cogs.leaderboard
+        import cogs.owner
+        import cogs.support
+        import cogs.voice_farm
+        for mod in [cogs.economy, cogs.welcome, cogs.general, cogs.shop, cogs.pet_shop, cogs.trading, cogs.leaderboard, cogs.owner, cogs.support, cogs.voice_farm]:
+            await mod.setup(self)
 
     async def on_ready(self):
         print(f"Logged in as {self.user} (ID: {self.user.id})", flush=True)

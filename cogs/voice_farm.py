@@ -46,12 +46,20 @@ class VoiceFarm(commands.Cog):
 
     async def update_status(self, vc):
         channel = self.bot.get_channel(VOICE_FARM_TEXT_CHANNEL_ID)
-        if not channel:
+        if channel:
+            print(f"[Farm] Using config text channel: {channel.name} ({channel.id})", flush=True)
+        else:
             try:
                 channel = vc.text_channel
-            except:
+                if channel:
+                    print(f"[Farm] Using VC text channel: {channel.name} ({channel.id})", flush=True)
+                else:
+                    print(f"[Farm] vc.text_channel returned None", flush=True)
+            except Exception as e:
+                print(f"[Farm] vc.text_channel error: {e}", flush=True)
                 channel = None
         if not channel:
+            print(f"[Farm] No text channel found - skipping panel update", flush=True)
             return
         now = datetime.now(timezone.utc)
         lines = []

@@ -1,8 +1,9 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from config import OWNER_ID, TRADING_CHANNEL_ID
+from config import OWNER_ID, TRADING_CHANNEL_ID, VOICE_FARM_CHANNEL_ID, VOICE_FARM_TEXT_CHANNEL_ID, WELCOME_CHANNEL_ID, LEAVE_CHANNEL_ID, LEADERBOARD_CHANNEL_ID, XP_LEADERBOARD_CHANNEL_ID
 import random
+import os
 from database import load_data, save_data, get_player
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 
@@ -199,6 +200,79 @@ class Owner(commands.Cog):
             lines.append(f"{status} {name} — Send:{can_send} Read:{can_read} Embed:{can_embed} Mention:{can_mention}")
         embed = discord.Embed(title="🔍 Permission Check", description="\n".join(lines), color=discord.Color.from_rgb(30, 30, 35))
         await interaction.response.send_message(embed=embed)
+
+
+    @app_commands.command(name="testfarm", description="[Owner] Check VC farm status")
+    async def testfarm(self, interaction: discord.Interaction):
+        lines = []
+        vc = self.bot.get_channel(VOICE_FARM_CHANNEL_ID)
+        if vc:
+            lines.append(f"✅ VC found: **{vc.name}** (ID: {vc.id})")
+            lines.append(f"   Members in VC: {len(vc.members)}")
+            for m in vc.members:
+                lines.append(f"   - {m.display_name} (bot={m.bot})")
+            try:
+                tc = vc.text_channel
+                if tc:
+                    lines.append(f"✅ Text chat: **{tc.name}** (ID: {tc.id})")
+                else:
+                    lines.append("❌ No text chat linked to this VC")
+            except:
+                lines.append("❌ Could not get vc.text_channel")
+        else:
+            lines.append(f"❌ VC not found (ID: {VOICE_FARM_CHANNEL_ID})")
+        if VOICE_FARM_TEXT_CHANNEL_ID:
+            tc2 = self.bot.get_channel(VOICE_FARM_TEXT_CHANNEL_ID)
+            if tc2:
+                lines.append(f"✅ Config text channel found: **{tc2.name}**")
+            else:
+                lines.append(f"❌ Config text channel ID {VOICE_FARM_TEXT_CHANNEL_ID} not found")
+        else:
+            lines.append("ℹ️ No VOICE_FARM_TEXT_CHANNEL_ID set (using vc.text_channel)")
+        embed = discord.Embed(title="🎧 VC Farm Status", description="\n".join(lines), color=discord.Color.from_rgb(30, 30, 35))
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="testcogs", description="[Owner] List loaded cogs")
+    async def testcogs(self, interaction: discord.Interaction):
+        names = list(self.bot.cogs.keys())
+        embed = discord.Embed(title="📦 Loaded Cogs", description="\n".join(f"✅ {n}" for n in names) or "None", color=discord.Color.from_rgb(30, 30, 35))
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="testenv", description="[Owner] Check environment variables")
+    async def testenv(self, interaction: discord.Interaction):
+        vars = {
+            "DISCORD_TOKEN": bool(os.getenv("DISCORD_TOKEN")),
+            "GUILD_ID": os.getenv("GUILD_ID"),
+            "OWNER_ID": os.getenv("OWNER_ID"),
+            "WELCOME_CHANNEL_ID": os.getenv("WELCOME_CHANNEL_ID"),
+            "LEAVE_CHANNEL_ID": os.getenv("LEAVE_CHANNEL_ID"),
+            "LEADERBOARD_CHANNEL_ID": os.getenv("LEADERBOARD_CHANNEL_ID"),
+            "XP_LEADERBOARD_CHANNEL_ID": os.getenv("XP_LEADERBOARD_CHANNEL_ID"),
+            "VOICE_FARM_CHANNEL_ID": os.getenv("VOICE_FARM_CHANNEL_ID"),
+            "VOICE_FARM_TEXT_CHANNEL_ID": os.getenv("VOICE_FARM_TEXT_CHANNEL_ID"),
+            "DATABASE_URL": bool(os.getenv("DATABASE_URL")),
+        }
+        lines = []
+        for k, v in vars.items():
+            icon = "✅" if v else "❌"
+            lines.append(f"{icon} **{k}**: {v}")
+        embed = discord.Embed(title="📋 Env Variables", description="\n".join(lines), color=discord.Color.from_rgb(30, 30, 35))
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="testvc", description="[Owner] Test VC join by mentioning user")
+    async def testvc(self, interaction: discord.Interaction):
+        vc = self.bot.get_channel(VOICE_FARM_CHANNEL_ID)
+        if not vc:
+            await interaction.response.send_message(f"❌ Voice channel {VOICE_FARM_CHANNEL_ID} not found", ephemeral=True)
+            return
+        lines = [f"**{vc.name}** (ID: {vc.id})"]
+        lines.append(f"Members: {len(vc.members)}")
+        for m in vc.members:
+            cog = self.bot.get_cog("VoiceFarm")
+            in_dict = m.id in cog.vc_users if cog else False
+            lines.append(f"{'🎧' if in_dict else '👤'} {m.display_name} — tracked={in_dict}")
+        embed = discord.Embed(title="🔊 VC Info", description="\n".join(lines), color=discord.Color.from_rgb(30, 30, 35))
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 async def setup(bot):
