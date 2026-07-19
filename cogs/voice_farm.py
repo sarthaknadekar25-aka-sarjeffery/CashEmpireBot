@@ -10,7 +10,6 @@ class VoiceFarm(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.vc_users = {}
-        self.status_message = None
         self.loop_count = 0
         self.voice_farm_loop.start()
 
@@ -22,16 +21,49 @@ class VoiceFarm(commands.Cog):
         if member.bot:
             return
         if after.channel and after.channel.id == VOICE_FARM_CHANNEL_ID:
-            self.vc_users[member.id] = {"joined": datetime.now(timezone.utc), "session_earned": 0}
-            await self.announce_join(member)
+            info = {"joined": datetime.now(timezone.utc), "session_earned": 0, "message": None}
+            self.vc_users[member.id] = info
+            await self.send_panel(member, info)
         elif before.channel and before.channel.id == VOICE_FARM_CHANNEL_ID:
-            self.vc_users.pop(member.id, None)
+            info = self.vc_users.pop(member.id, None)
+            if info and info["message"]:
+                await self.stop_panel(member, info)
 
-    async def announce_join(self, member):
+    async def send_panel(self, member, info):
         channel = self.bot.get_channel(VOICE_FARM_TEXT_CHANNEL_ID)
         if not channel:
             return
-        await channel.send(f"{member.mention} joined AFK farm! 🎧")
+        embed = discord.Embed(
+            title="🎧 AFK Farm",
+            description=f"{member.mention} started farming!",
+            color=discord.Color.from_rgb(30, 30, 35)
+        )
+        embed.add_field(name="⏱ Time", value="0m 0s", inline=True)
+        embed.add_field(name="💰 Earned", value="0 coins", inline=True)
+        embed.add_field(name="\u200b", value="\u200b", inline=True)
+        embed.set_footer(text="2 coins per 10s | +100 coins every 10 min")
+        msg = await channel.send(embed=embed)
+        info["message"] = msg
+
+    async def stop_panel(self, member, info):
+        if not info["message"]:
+            return
+        delta = datetime.now(timezone.utc) - info["joined"]
+        minutes = int(delta.total_seconds() // 60)
+        seconds = int(delta.total_seconds() % 60)
+        embed = discord.Embed(
+            title="🎧 AFK Farm — Stopped",
+            description=f"{member.mention} left the farm.",
+            color=discord.Color.from_rgb(60, 60, 65)
+        )
+        embed.add_field(name="⏱ Duration", value=f"{minutes}m {seconds}s", inline=True)
+        embed.add_field(name="💰 Earned", value=f"+{info['session_earned']} coins", inline=True)
+        embed.add_field(name="\u200b", value="\u200b", inline=True)
+        embed.set_footer(text="Come back anytime to farm more!")
+        try:
+            await info["message"].edit(embed=embed)
+        except:
+            pass
 
     @tasks.loop(seconds=10)
     async def voice_farm_loop(self):
@@ -42,10 +74,18 @@ class VoiceFarm(commands.Cog):
         current_ids = {m.id for m in vc.members if not m.bot}
         for uid in list(self.vc_users.keys()):
             if uid not in current_ids:
-                self.vc_users.pop(uid, None)
+                info = self.vc_users.pop(uid, None)
+                if info and info["message"]:
+                    member = vc.guild.get_member(uid)
+                    if member:
+                        await self.stop_panel(member, info)
         for mid in current_ids:
             if mid not in self.vc_users:
-                self.vc_users[mid] = {"joined": datetime.now(timezone.utc), "session_earned": 0}
+                member = vc.guild.get_member(mid)
+                if member:
+                    info = {"joined": datetime.now(timezone.utc), "session_earned": 0, "message": None}
+                    self.vc_users[mid] = info
+                    await self.send_panel(member, info)
         if not self.vc_users:
             return
 
@@ -61,40 +101,35 @@ class VoiceFarm(commands.Cog):
                 self.vc_users[uid]["session_earned"] += 100
 
         save_data(data)
-        await self.update_status(vc)
 
-    async def update_status(self, vc):
         channel = self.bot.get_channel(VOICE_FARM_TEXT_CHANNEL_ID)
         if not channel:
             return
         now = datetime.now(timezone.utc)
-        lines = []
-        total_session = 0
         for uid, info in list(self.vc_users.items()):
+            if not info["message"]:
+                continue
             member = vc.guild.get_member(uid)
-            name = member.display_name if member else "Unknown"
+            if not member:
+                continue
             delta = now - info["joined"]
             minutes = int(delta.total_seconds() // 60)
             seconds = int(delta.total_seconds() % 60)
             session = info["session_earned"]
-            total_session += session
-            mention = member.mention if member else name
-            lines.append(f"{mention} — {minutes}m {seconds}s — +{session} coins")
-        lines.append("")
-        lines.append("**2 coins per 10s** | **+100 coins every 10 min**")
-        embed = discord.Embed(
-            title="🎧 AFK Farm",
-            description="\n".join(lines) if lines else "No one is farming.",
-            color=discord.Color.from_rgb(30, 30, 35)
-        )
-        embed.set_footer(text=f"Total session earned: {total_session} coins")
-        if self.status_message:
+            embed = discord.Embed(
+                title="🎧 AFK Farm",
+                description=f"{member.mention} is farming!",
+                color=discord.Color.from_rgb(30, 30, 35)
+            )
+            embed.add_field(name="⏱ Time", value=f"{minutes}m {seconds}s", inline=True)
+            embed.add_field(name="💰 Earned", value=f"+{session} coins", inline=True)
+            embed.add_field(name="\u200b", value="\u200b", inline=True)
+            bonus_count = int(delta.total_seconds()) // 600
+            embed.set_footer(text=f"2 coins/10s | +100 coins every 10min | Bonuses: {bonus_count}")
             try:
-                await self.status_message.edit(embed=embed)
+                await info["message"].edit(embed=embed)
             except:
-                self.status_message = await channel.send(embed=embed)
-        else:
-            self.status_message = await channel.send(embed=embed)
+                pass
 
     @voice_farm_loop.before_loop
     async def before_farm(self):
