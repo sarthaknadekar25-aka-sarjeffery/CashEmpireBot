@@ -5,10 +5,8 @@ from config import LEADERBOARD_CHANNEL_ID, XP_LEADERBOARD_CHANNEL_ID
 from database import load_data, save_data, get_player
 from datetime import datetime, timezone, timedelta
 import discord.utils
+from checks import check_bot_commands
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
-GOLD = discord.Color.from_rgb(255, 215, 0)
-SILVER = discord.Color.from_rgb(192, 192, 192)
-BRONZE = discord.Color.from_rgb(205, 127, 50)
 
 REWARD_AMOUNTS = {1: 1000, 2: 500, 3: 250}
 
@@ -41,6 +39,9 @@ class Leaderboard(commands.Cog):
 
     def cog_unload(self):
         self.daily_leaderboard.cancel()
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return await check_bot_commands(interaction)
 
     async def post_leaderboards(self):
         data = load_data()
@@ -102,13 +103,13 @@ class Leaderboard(commands.Cog):
     async def lb(self, interaction: discord.Interaction):
         data = load_data()
         embed = build_leaderboard_embed(data, self.bot, "✦ COIN LEADERBOARD ✦", lambda p: p.get("balance", 0))
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="xplb", description="Show XP leaderboard")
     async def xplb(self, interaction: discord.Interaction):
         data = load_data()
         embed = build_leaderboard_embed(data, self.bot, "✦ XP LEADERBOARD ✦", lambda p: p.get("xp", 0))
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="rank", description="Check your XP rank")
     async def rank(self, interaction: discord.Interaction):
@@ -126,7 +127,7 @@ class Leaderboard(commands.Cog):
         embed.add_field(name="Rank", value=f"**#{rank}**")
         embed.add_field(name="Messages", value=f"**{player.get('messages', 0)}**")
         embed.add_field(name="Commands", value=f"**{player.get('commands', 0)}**")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot):

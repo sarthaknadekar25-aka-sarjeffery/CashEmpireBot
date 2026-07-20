@@ -3,7 +3,9 @@ from discord import app_commands
 from discord.ext import commands
 import random
 from database import load_data, save_data, get_player, migrate_pets, pet_image_url
+from config import OWNER_ID
 
+PETSHOP_CHANNEL_ID = 1499311029916536883
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 RARITY_COLORS = {
     "Common": discord.Color.from_rgb(150, 150, 150),
@@ -121,81 +123,47 @@ class CrateButton(discord.ui.Button):
 PET_PER_PAGE = 5
 
 
-class InventoryView(discord.ui.View):
-    def __init__(self, user_id, pets, data_ref):
-        super().__init__(timeout=120)
-        self.target_user = user_id
-        self.pets = pets
-        self.data_ref = data_ref
-        self.page = 0
-        self.max_page = max(0, (len(pets) - 1) // PET_PER_PAGE)
-        self.build_page()
-
-    def build_page(self):
-        self.clear_items()
-        start = self.page * PET_PER_PAGE
-        end = min(start + PET_PER_PAGE, len(self.pets))
-        page_pets = list(enumerate(self.pets))[start:end]
-        for idx, pet in page_pets:
-            if pet.get("active"):
-                self.add_item(DeactivateButton(idx, self.target_user, self.data_ref, self))
-            else:
-                self.add_item(ActivateButton(idx, self.target_user, self.data_ref, self))
-        if self.page > 0:
-            self.add_item(PrevPageButton(self.target_user, self))
-        if self.page < self.max_page:
-            self.add_item(NextPageButton(self.target_user, self))
-
-    def get_embed(self):
-        start = self.page * PET_PER_PAGE
-        end = min(start + PET_PER_PAGE, len(self.pets))
-        active = next((p for p in self.pets if p.get("active")), self.pets[start] if self.pets else None)
-        embed = discord.Embed(title=f"Your Pets ({len(self.pets)}) — Page {self.page + 1}/{self.max_page + 1}", color=VIP_DARK)
-        if active:
-            embed.set_thumbnail(url=pet_image_url(active["name"], active["rarity"]))
-        for i in range(start, end):
-            pet = self.pets[i]
-            status = " ⭐ ACTIVE" if pet.get("active") else ""
-            color_emoji = {"Common": "⬜", "Uncommon": "🟢", "Rare": "🔵", "Epic": "🟣", "Legendary": "🟡", "Gold": "🌟"}
-            ce = color_emoji.get(pet.get("rarity", "Common"), "⬜")
-            embed.add_field(name=f"[{i+1}] {pet.get('emoji', '🐾')} {pet['name']}{status}", value=f"{ce} {pet.get('rarity', 'Common')} | **{pet['multiplier']}x**", inline=False)
-        embed.set_footer(text="Click a button below to toggle pet active/inactive")
-        return embed
-
-
-class ActivateButton(discord.ui.Button):
+class PetToggleButton(discord.ui.Button):
     def __init__(self, pet_idx, user_id, data_ref, view_ref):
         self.pet_idx = pet_idx
         self.target_user = user_id
         self.data_ref = data_ref
         self.view_ref = view_ref
-        super().__init__(label=f"#{pet_idx + 1} ON", style=discord.ButtonStyle.success, emoji="✅")
+        super().__init__(
+            label=f"#{pet_idx + 1}",
+            style=discord.ButtonStyle.primary,
+            emoji=data_ref["pets"][pet_idx].get("emoji", "🐾")
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.target_user:
+            await interaction.response.send_message("Not your menu.", ephemeral=True)
+            return
+        pet = self.data_ref["pets"][self.pet_idx]
+        if pet.get("active"):
+            pet["active"] = False
+        else:
+            for p in self.data_ref["pets"]:
+                p["active"] = False
+            pet["active"] = True
+        save_data(self.view_ref.data_ref)
+        self.view_ref.build_page()
+        await interaction.response.edit_message(embed=self.view_ref.get_embed(), view=self.view_ref)
+
+
+class ActivateAllButton(discord.ui.Button):
+    def __init__(self, user_id, data_ref, view_ref):
+        self.target_user = user_id
+        self.data_ref = data_ref
+        self.view_ref = view_ref
+        super().__init__(label="All Pets", style=discord.ButtonStyle.success, emoji="🌟")
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.target_user:
             await interaction.response.send_message("Not your menu.", ephemeral=True)
             return
         for p in self.data_ref["pets"]:
-            p["active"] = False
-        self.data_ref["pets"][self.pet_idx]["active"] = True
-        save_data(self.view_ref.data_ref)
-        self.view_ref.build_page()
-        await interaction.response.edit_message(embed=self.view_ref.get_embed(), view=self.view_ref)
-
-
-class DeactivateButton(discord.ui.Button):
-    def __init__(self, pet_idx, user_id, data_ref, view_ref):
-        self.pet_idx = pet_idx
-        self.target_user = user_id
-        self.data_ref = data_ref
-        self.view_ref = view_ref
-        super().__init__(label=f"#{pet_idx + 1} OFF", style=discord.ButtonStyle.danger, emoji="⭕")
-
-    async def callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.target_user:
-            await interaction.response.send_message("Not your menu.", ephemeral=True)
-            return
-        self.data_ref["pets"][self.pet_idx]["active"] = False
+            p["active"] = True
         save_data(self.view_ref.data_ref)
         self.view_ref.build_page()
         await interaction.response.edit_message(embed=self.view_ref.get_embed(), view=self.view_ref)
@@ -231,12 +199,54 @@ class NextPageButton(discord.ui.Button):
         await interaction.response.edit_message(embed=self.view_ref.get_embed(), view=self.view_ref)
 
 
+class InventoryView(discord.ui.View):
+    def __init__(self, user_id, pets, data_ref):
+        super().__init__(timeout=120)
+        self.target_user = user_id
+        self.pets = pets
+        self.data_ref = data_ref
+        self.page = 0
+        self.max_page = max(0, (len(pets) - 1) // PET_PER_PAGE)
+        self.build_page()
+
+    def build_page(self):
+        self.clear_items()
+        start = self.page * PET_PER_PAGE
+        end = min(start + PET_PER_PAGE, len(self.pets))
+        for idx in range(start, end):
+            self.add_item(PetToggleButton(idx, self.target_user, self.data_ref, self))
+        self.add_item(ActivateAllButton(self.target_user, self.data_ref, self))
+        if self.page > 0:
+            self.add_item(PrevPageButton(self.target_user, self))
+        if self.page < self.max_page:
+            self.add_item(NextPageButton(self.target_user, self))
+
+    def get_embed(self):
+        start = self.page * PET_PER_PAGE
+        end = min(start + PET_PER_PAGE, len(self.pets))
+        active = next((p for p in self.pets if p.get("active")), None)
+        embed = discord.Embed(title=f"Your Pets ({len(self.pets)}) — Page {self.page + 1}/{self.max_page + 1}", color=VIP_DARK)
+        if active:
+            embed.set_thumbnail(url=pet_image_url(active["name"], active["rarity"]))
+        for i in range(start, end):
+            pet = self.pets[i]
+            status = " ⭐ ACTIVE" if pet.get("active") else " ○ inactive"
+            color_emoji = {"Common": "⬜", "Uncommon": "🟢", "Rare": "🔵", "Epic": "🟣", "Legendary": "🟡", "Gold": "🌟"}
+            ce = color_emoji.get(pet.get("rarity", "Common"), "⬜")
+            embed.add_field(name=f"[{i+1}] {pet.get('emoji', '🐾')} {pet['name']}{status}", value=f"{ce} {pet.get('rarity', 'Common')} | **{pet['multiplier']}x**", inline=False)
+        embed.set_footer(text="Click a pet button to toggle | 🌟 All Pets activates every pet")
+        return embed
+
+
 class PetShop(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @app_commands.command(name="petshop", description="Buy and open crates to get pets")
     async def petshop(self, interaction: discord.Interaction):
+        if interaction.user.id != OWNER_ID and interaction.channel_id != PETSHOP_CHANNEL_ID:
+            await interaction.response.send_message(f"This command can only be used in <#{PETSHOP_CHANNEL_ID}>.", ephemeral=True)
+            return
         embed = discord.Embed(title="✦ CRATE SHOP ✦", color=VIP_DARK)
         for c in CRATES:
             gold = next(p for p in c["pets"] if p["rarity"] == "Gold")
@@ -244,7 +254,7 @@ class PetShop(commands.Cog):
         view = discord.ui.View()
         for c in CRATES:
             view.add_item(CrateButton(c, interaction.user.id))
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="mypets", description="View your pet inventory")
     async def mypets(self, interaction: discord.Interaction):
@@ -253,10 +263,10 @@ class PetShop(commands.Cog):
         migrate_pets(player)
         pets = player.get("pets", [])
         if not pets:
-            await interaction.response.send_message("You have no pets. Open crates in `/petshop`!", ephemeral=True)
+            await interaction.response.send_message("You have no pets. Open crates in `/petshop`!")
             return
         view = InventoryView(interaction.user.id, pets, data)
-        await interaction.response.send_message(embed=view.get_embed(), view=view, ephemeral=True)
+        await interaction.response.send_message(embed=view.get_embed(), view=view)
 
 
 async def setup(bot):

@@ -1,10 +1,28 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from config import SHOP_CHANNEL_ID, BOT_COMMANDS_CHANNEL_ID
+from datetime import datetime
+from config import SHOP_CHANNEL_ID
 from database import load_data, get_player, migrate_pets, pet_image_url
+from checks import check_bot_commands
 
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
+
+
+def _remaining(player, key):
+    expires = player.get(key)
+    if not expires:
+        return None
+    try:
+        t = datetime.fromisoformat(expires)
+        delta = t - datetime.utcnow()
+        if delta.total_seconds() <= 0:
+            return None
+        h, r = divmod(int(delta.total_seconds()), 3600)
+        m = r // 60
+        return f"{h}h {m}m"
+    except:
+        return None
 
 
 class General(commands.Cog):
@@ -12,25 +30,20 @@ class General(commands.Cog):
         self.bot = bot
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.channel_id == BOT_COMMANDS_CHANNEL_ID:
-            return True
-        if SHOP_CHANNEL_ID and interaction.channel_id == SHOP_CHANNEL_ID:
-            await interaction.response.send_message("This command can't be used in the shop channel.", ephemeral=True)
-            return False
-        return True
+        return await check_bot_commands(interaction)
 
     @app_commands.command(name="ping", description="Check bot latency")
     async def ping(self, interaction: discord.Interaction):
         latency = round(self.bot.latency * 1000)
         color = discord.Color.green() if latency < 200 else discord.Color.orange() if latency < 500 else discord.Color.red()
         embed = discord.Embed(title="Pong!", description=f"**{latency}ms**", color=color)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="flex", description="Flex your stats in the flex channel")
     async def flex(self, interaction: discord.Interaction):
         channel = interaction.client.get_channel(1515320625848123453)
         if not channel:
-            await interaction.response.send_message("Flex channel not found.", ephemeral=True)
+            await interaction.response.send_message("Flex channel not found.")
             return
         data = load_data()
         player = get_player(data, interaction.user.id)
@@ -53,7 +66,7 @@ class General(commands.Cog):
         embed.add_field(name="📨 Messages", value=f"**{player.get('messages', 0)}**", inline=True)
         embed.add_field(name="⚙️ Commands", value=f"**{player.get('commands', 0)}**", inline=True)
         await channel.send(embed=embed)
-        await interaction.response.send_message("Flex posted! 💪", ephemeral=True)
+        await interaction.response.send_message("Flex posted! 💪")
 
     @app_commands.command(name="help", description="Show available commands")
     async def help(self, interaction: discord.Interaction):
@@ -67,9 +80,9 @@ class General(commands.Cog):
         embed.add_field(name="🐾 Pets", value="`/mypets` `/petshop`", inline=False)
         embed.add_field(name="🤝 Trading", value="`/sell`", inline=False)
         embed.add_field(name="📊 Leaderboard", value="`/lb` `/xplb` `/rank`", inline=False)
+        embed.add_field(name="⚡ Boosts", value="`/boost`", inline=False)
         embed.add_field(name="⚙️ Utility", value="`/ping` `/help` `/guide` `/supportpanel`", inline=False)
-        embed.add_field(name="👑 Owner", value="`/addcoins` `/removecoins` `/setbalance` `/resetuser` `/broadcast` `/clear` `/giveaway` `/announcement`", inline=False)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="guide", description="How to play CashEmpire")
     async def guide(self, interaction: discord.Interaction):
@@ -85,14 +98,32 @@ class General(commands.Cog):
         embed.add_field(name="5️⃣ Trade Pets", value="Use `/sell` to list pets for sale in the trading channel. Players can **Buy** or **Bargain**!", inline=False)
         embed.add_field(name="6️⃣ Climb the Ranks", value="Check `/lb` (coins) and `/xplb` (XP) to see the top 25 players. Daily leaderboards post automatically!", inline=False)
         embed.set_footer(text="Tip: Lucky Charms from /shop boost your gold pet chance!")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="test", description="Test if the bot is working")
-    async def test(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="✅ Bot is Online", description="All systems operational!", color=discord.Color.green())
-        embed.set_thumbnail(url=pet_image_url("Forest Spirit", "Common"))
-        embed.add_field(name="Forest Spirit", value="Test image — send more pet images to replace the rest!")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+    @app_commands.command(name="boost", description="Check your active boosters and remaining time")
+    async def boost(self, interaction: discord.Interaction):
+        data = load_data()
+        player = get_player(data, interaction.user.id)
+        r2 = _remaining(player, "multiplier_2x_expires")
+        r5 = _remaining(player, "multiplier_5x_expires")
+        embed = discord.Embed(title=f"⚡ Boosts — {interaction.user.display_name}", color=VIP_DARK)
+        if r5:
+            embed.add_field(name="💎 5x Booster", value=f"Remaining: **{r5}**", inline=False)
+        elif r2:
+            embed.add_field(name="🚀 2x Booster", value=f"Remaining: **{r2}**", inline=False)
+        else:
+            embed.add_field(name="No Active Boosters", value="Buy one from `/shop`!", inline=False)
+        pet_mult = 1.0
+        for pet in player.get("pets", []):
+            if isinstance(pet, dict) and pet.get("active"):
+                pet_mult = float(pet.get("multiplier", 1.0))
+                break
+        if pet_mult > 1.0:
+            active_pet = next((p for p in player.get("pets", []) if isinstance(p, dict) and p.get("active")), None)
+            name = active_pet["name"] if active_pet else "Pet"
+            embed.add_field(name="🐾 Active Pet", value=f"**{name}** — {pet_mult}x", inline=False)
+        embed.set_footer(text="Boosters last 24 hours from purchase")
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot):

@@ -4,7 +4,7 @@ from discord.ext import commands
 from config import OWNER_ID, TRADING_CHANNEL_ID, VOICE_FARM_CHANNEL_ID, VOICE_FARM_TEXT_CHANNEL_ID, WELCOME_CHANNEL_ID, LEAVE_CHANNEL_ID, LEADERBOARD_CHANNEL_ID, XP_LEADERBOARD_CHANNEL_ID
 import random
 import os
-from database import load_data, save_data, get_player
+from database import load_data, save_data, get_player, pet_image_url
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 
 
@@ -272,6 +272,13 @@ class Owner(commands.Cog):
             in_dict = m.id in cog.vc_users if cog else False
             lines.append(f"{'🎧' if in_dict else '👤'} {m.display_name} — tracked={in_dict}")
         embed = discord.Embed(title="🔊 VC Info", description="\n".join(lines), color=discord.Color.from_rgb(30, 30, 35))
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="test", description="[Owner] Test if the bot is working")
+    async def test(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="✅ Bot is Online", description="All systems operational!", color=discord.Color.green())
+        embed.set_thumbnail(url=pet_image_url("Forest Spirit", "Common"))
+        embed.add_field(name="Forest Spirit", value="Test image — send more pet images to replace the rest!")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
