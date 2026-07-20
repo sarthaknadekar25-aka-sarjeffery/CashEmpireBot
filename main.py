@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 
 _BASE = os.path.dirname(os.path.abspath(__file__))
 os.chdir(_BASE)
@@ -9,11 +10,19 @@ if _BASE not in sys.path:
 from dotenv import load_dotenv
 load_dotenv(os.path.join(_BASE, ".env"))
 
-print(f"[Startup] CWD: {os.getcwd()}", flush=True)
-print(f"[Startup] Has .env: {os.path.exists(os.path.join(_BASE, '.env'))}", flush=True)
-print(f"[Startup] All env keys: {sorted(os.environ.keys())}", flush=True)
-print(f"[Startup] DISCORD_TOKEN exists: {'DISCORD_TOKEN' in os.environ}", flush=True)
-print(f"[Startup] DATABASE_URL exists: {'DATABASE_URL' in os.environ}", flush=True)
+_secrets = {}
+_secrets_path = os.path.join(_BASE, "secrets.json")
+if os.path.exists(_secrets_path):
+    with open(_secrets_path) as f:
+        _secrets = json.load(f)
+
+for key in ("DISCORD_TOKEN", "DATABASE_URL"):
+    val = os.getenv(key) or _secrets.get(key) or os.environ.get(key)
+    if val:
+        os.environ[key] = val
+
+if not os.getenv("DISCORD_TOKEN"):
+    raise RuntimeError("DISCORD_TOKEN not set. Put it in secrets.json, .env, or environment variables.")
 
 import discord
 from discord.ext import commands
@@ -61,11 +70,5 @@ class MyBot(commands.Bot):
                 print(f"Failed to sync guild commands: {e}", flush=True)
 
 
-_token = os.getenv("DISCORD_TOKEN")
-if not _token:
-    print(f"[Startup] DISCORD_TOKEN not found in env. Checking .env file...", flush=True)
-    print(f"[Startup] All env keys: {sorted(os.environ.keys())}", flush=True)
-    raise RuntimeError("DISCORD_TOKEN not set in environment or .env file")
-
 bot = MyBot()
-bot.run(_token)
+bot.run(os.environ["DISCORD_TOKEN"])
