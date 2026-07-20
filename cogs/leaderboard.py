@@ -3,17 +3,17 @@ from discord import app_commands
 from discord.ext import commands, tasks
 from config import LEADERBOARD_CHANNEL_ID, XP_LEADERBOARD_CHANNEL_ID
 from database import load_data, save_data, get_player
-from datetime import time, datetime, timezone
+from datetime import datetime, timezone, timedelta
+import discord.utils
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
 GOLD = discord.Color.from_rgb(255, 215, 0)
 SILVER = discord.Color.from_rgb(192, 192, 192)
 BRONZE = discord.Color.from_rgb(205, 127, 50)
 
+REWARD_AMOUNTS = {1: 1000, 2: 500, 3: 250}
 
 
-
-
-def build_leaderboard_embed(data, bot, title, sort_key, channel_id, top_n=25):
+def build_leaderboard_embed(data, bot, title, sort_key, top_n=25):
     players = [(uid, info) for uid, info in data.items()]
     players.sort(key=lambda x: sort_key(x[1]), reverse=True)
     players = players[:top_n]
@@ -26,11 +26,10 @@ def build_leaderboard_embed(data, bot, title, sort_key, channel_id, top_n=25):
         name = user.display_name if user else "Unknown"
         value = sort_key(info)
         prefix = medals.get(i, f"`#{i}`")
-        field_name = f"{prefix} {name}"
         if i == 1:
             embed.description = f"**👑 {name}** — {value}\n"
             embed.set_thumbnail(url=user.display_avatar.url if user else None)
-        embed.add_field(name=field_name, value=str(value), inline=True)
+        embed.add_field(name=f"{prefix} {name}", value=str(value), inline=True)
     embed.set_footer(text="Updated daily")
     return embed
 
@@ -43,24 +42,36 @@ class Leaderboard(commands.Cog):
     def cog_unload(self):
         self.daily_leaderboard.cancel()
 
-    @tasks.loop(time=time(hour=0, minute=0, second=0, tzinfo=timezone.utc))
+    async def post_leaderboards(self):
+        data = load_data()
+        coin_channel = self.bot.get_channel(LEADERBOARD_CHANNEL_ID)
+        if coin_channel:
+            top = sorted(data.items(), key=lambda x: x[1].get("balance", 0), reverse=True)[:3]
+            for rank, (uid, info) in enumerate(top, 1):
+                reward = REWARD_AMOUNTS.get(rank, 0)
+                if reward:
+                    get_player(data, int(uid))["balance"] += reward
+            save_data(data)
+            embed = build_leaderboard_embed(data, self.bot, "✦ COIN LEADERBOARD ✦", lambda p: p.get("balance", 0))
+            msg = "🏆 **Daily rewards:** 🥇 1,000 | 🥈 500 | 🥉 250 coins"
+            await coin_channel.send(msg, embed=embed)
+        xp_channel = self.bot.get_channel(XP_LEADERBOARD_CHANNEL_ID)
+        if xp_channel:
+            embed = build_leaderboard_embed(data, self.bot, "✦ XP LEADERBOARD ✦", lambda p: p.get("xp", 0))
+            await xp_channel.send(embed=embed)
+
+    @tasks.loop(hours=24)
     async def daily_leaderboard(self):
         await self.post_leaderboards()
 
     @daily_leaderboard.before_loop
     async def before_daily(self):
         await self.bot.wait_until_ready()
-
-    async def post_leaderboards(self):
-        data = load_data()
-        coin_channel = self.bot.get_channel(LEADERBOARD_CHANNEL_ID)
-        if coin_channel:
-            embed = build_leaderboard_embed(data, self.bot, "✦ COIN LEADERBOARD ✦", lambda p: p.get("balance", 0), LEADERBOARD_CHANNEL_ID)
-            await coin_channel.send(embed=embed)
-        xp_channel = self.bot.get_channel(XP_LEADERBOARD_CHANNEL_ID)
-        if xp_channel:
-            embed = build_leaderboard_embed(data, self.bot, "✦ XP LEADERBOARD ✦", lambda p: p.get("xp", 0), XP_LEADERBOARD_CHANNEL_ID)
-            await xp_channel.send(embed=embed)
+        now = datetime.now(timezone.utc)
+        next_run = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if next_run <= now:
+            next_run += timedelta(days=1)
+        await discord.utils.sleep_until(next_run)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -90,13 +101,13 @@ class Leaderboard(commands.Cog):
     @app_commands.command(name="lb", description="Show coin leaderboard")
     async def lb(self, interaction: discord.Interaction):
         data = load_data()
-        embed = build_leaderboard_embed(data, self.bot, "✦ COIN LEADERBOARD ✦", lambda p: p.get("balance", 0), LEADERBOARD_CHANNEL_ID)
+        embed = build_leaderboard_embed(data, self.bot, "✦ COIN LEADERBOARD ✦", lambda p: p.get("balance", 0))
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="xplb", description="Show XP leaderboard")
     async def xplb(self, interaction: discord.Interaction):
         data = load_data()
-        embed = build_leaderboard_embed(data, self.bot, "✦ XP LEADERBOARD ✦", lambda p: p.get("xp", 0), XP_LEADERBOARD_CHANNEL_ID)
+        embed = build_leaderboard_embed(data, self.bot, "✦ XP LEADERBOARD ✦", lambda p: p.get("xp", 0))
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="rank", description="Check your XP rank")

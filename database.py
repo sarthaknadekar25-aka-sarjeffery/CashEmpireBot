@@ -1,7 +1,9 @@
 import os
 import json
+import sys
 
-DATA_FILE = "data/economy.json"
+_BASE = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(_BASE, "data", "economy.json")
 
 _db_ready = False
 _db_conn = None
@@ -22,8 +24,12 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres"):
         """)
         cur.close()
         _db_ready = True
-    except Exception:
+        print("[DB] PostgreSQL connected!", flush=True)
+    except Exception as e:
         _db_ready = False
+        print(f"[DB] PostgreSQL connection failed: {e}", flush=True)
+else:
+    print(f"[DB] No DATABASE_URL or not PostgreSQL (starts with: {DATABASE_URL[:20] if DATABASE_URL else 'None'})", flush=True)
 
 
 def load_data():
@@ -35,8 +41,8 @@ def load_data():
             cur.close()
             if rows:
                 return {row[0]: dict(row[1]) for row in rows}
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[DB] load_data DB query failed: {e}", flush=True)
         if os.path.exists(DATA_FILE):
             try:
                 with open(DATA_FILE) as f:
@@ -44,25 +50,31 @@ def load_data():
                 if file_data:
                     cur = _db_conn.cursor()
                     cur.execute("DELETE FROM players")
-                    if file_data:
-                        psycopg2.extras.execute_values(
-                            cur,
-                            "INSERT INTO players (uid, data) VALUES %s",
-                            [(uid, json.dumps(pd)) for uid, pd in file_data.items()]
-                        )
+                    psycopg2.extras.execute_values(
+                        cur,
+                        "INSERT INTO players (uid, data) VALUES %s",
+                        [(uid, json.dumps(pd)) for uid, pd in file_data.items()]
+                    )
                     cur.close()
+                    print(f"[DB] Migrated {len(file_data)} players from JSON to DB", flush=True)
                     return file_data
-            except Exception:
-                pass
-    if not os.path.exists("data"):
-        os.makedirs("data")
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE) as f:
-            return json.load(f)
+            except Exception as e:
+                print(f"[DB] JSON migration failed: {e}", flush=True)
+    else:
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE) as f:
+                data = json.load(f)
+                if data:
+                    print(f"[DB] Loaded {len(data)} players from JSON (no DB)", flush=True)
+                    return data
+    print(f"[DB] No data found, returning empty dict", flush=True)
     return {}
 
 
 def save_data(data):
+    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=2)
     if _db_ready:
         try:
             cur = _db_conn.cursor()
@@ -74,12 +86,8 @@ def save_data(data):
                     [(uid, json.dumps(pd)) for uid, pd in data.items()]
                 )
             cur.close()
-            return
-        except Exception:
-            pass
-    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+        except Exception as e:
+            print(f"[DB] save_data DB write failed: {e}", flush=True)
 
 
 DEFAULT_PLAYER = {
