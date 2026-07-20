@@ -6,6 +6,11 @@ os.chdir(_BASE)
 if _BASE not in sys.path:
     sys.path.insert(0, _BASE)
 
+print(f"[Startup] CWD: {os.getcwd()}", flush=True)
+print(f"[Startup] DISCLOUD_* env: {[k for k in os.environ if 'DISCLOUD' in k.upper()]}", flush=True)
+print(f"[Startup] DISCORD_TOKEN in os.environ: {'DISCORD_TOKEN' in os.environ}", flush=True)
+print(f"[Startup] DATABASE_URL in os.environ: {'DATABASE_URL' in os.environ}", flush=True)
+
 import discord
 from discord.ext import commands
 from config import DISCORD_TOKEN, GUILD_ID
@@ -52,7 +57,13 @@ class MyBot(commands.Bot):
                 print(f"Failed to sync guild commands: {e}", flush=True)
 
 
+from dotenv import load_dotenv
+load_dotenv(os.path.join(_BASE, ".env"))
+
+_token = os.getenv("DISCORD_TOKEN")
+if not _token:
+    print(f"[Startup] All env keys: {list(os.environ.keys())}", flush=True)
+    raise RuntimeError("DISCORD_TOKEN not set in environment or .env file")
+
 bot = MyBot()
-if not DISCORD_TOKEN:
-    raise RuntimeError("DISCORD_TOKEN not set in .env or Railway Variables")
-bot.run(DISCORD_TOKEN)
+bot.run(_token)

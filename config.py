@@ -3,6 +3,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+_ENV_KEYS = list(os.environ.keys())
+print(f"[Config] Env vars available: {_ENV_KEYS}", flush=True)
+print(f"[Config] DISCORD_TOKEN via getenv: {os.getenv('DISCORD_TOKEN', '<NOT SET>')[:10] if os.getenv('DISCORD_TOKEN') else '<NOT SET>'}", flush=True)
+
 
 def _int(val, default=0):
     try:
