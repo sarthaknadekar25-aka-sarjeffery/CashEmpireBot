@@ -105,12 +105,12 @@ PET_IMAGES = {
 }
 
 PET_IMAGE_STYLES = {
-    "Common": "thumbs",
-    "Uncommon": "bottts-neutral",
-    "Rare": "bottts",
-    "Epic": "avataaars",
-    "Legendary": "pixel-art",
-    "Gold": "pixel-art",
+    "Common": "icons",
+    "Uncommon": "icons",
+    "Rare": "icons",
+    "Epic": "icons",
+    "Legendary": "icons",
+    "Gold": "icons",
 }
 
 
@@ -118,8 +118,7 @@ def pet_image_url(pet_name, rarity="Common"):
     custom = PET_IMAGES.get(pet_name)
     if custom:
         return custom
-    style = PET_IMAGE_STYLES.get(rarity, "thumbs")
-    return f"https://api.dicebear.com/9.x/{style}/png?seed={pet_name.replace(' ', '')}&size=128&radius=10"
+    return f"https://api.dicebear.com/9.x/icons/png?seed={pet_name}&size=128&radius=10"
 
 
 def migrate_pets(player):
