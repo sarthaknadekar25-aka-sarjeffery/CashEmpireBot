@@ -92,6 +92,7 @@ class CrateButton(discord.ui.Button):
         if player["balance"] < self.purchase_crate["price"]:
             await interaction.response.send_message(f"You need **{self.purchase_crate['price']} coins**. You have **{player['balance']}**.", ephemeral=True)
             return
+        await interaction.response.defer(ephemeral=True)
         player["balance"] -= self.purchase_crate["price"]
         luck = player.get("luck_boost", 0)
         pet = open_crate(self.purchase_crate, luck)
@@ -105,7 +106,7 @@ class CrateButton(discord.ui.Button):
         embed.set_thumbnail(url=pet_image_url(pet["name"], pet["rarity"]))
         embed.add_field(name=f"{pet['emoji']} {pet['name']}{gold_text}", value=f"{pet['rarity']} | **{pet['multiplier']}x** | +{xp_gain} XP")
         embed.add_field(name="Balance", value=f"**{player['balance']}** coins")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)
         announce_rarities = {"Rare", "Epic", "Legendary", "Gold"}
         if pet["rarity"] in announce_rarities:
             channel = interaction.channel
