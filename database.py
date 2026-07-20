@@ -107,6 +107,10 @@ PET_IMAGES = {
     "Cheetah": "https://cdn.discordapp.com/attachments/1520718205981687960/1528798492288614552/Cheetah.jfif",
     "Lion": "https://cdn.discordapp.com/attachments/1520718205981687960/1528798491873251468/Lion.webp",
     "Golden Python": "https://cdn.discordapp.com/attachments/1520718205981687960/1528798491399426340/Golden_Python.png",
+    "Arctic Hare": "https://cdn.discordapp.com/attachments/1520718205981687960/1528800336372957225/Arctic_Hare.webp",
+    "Snowy Owl": "https://cdn.discordapp.com/attachments/1520718205981687960/1528800336037548164/Snowy_Ow.jfif",
+    "Bengal Tiger": "https://cdn.discordapp.com/attachments/1520718205981687960/1528800337824321796/Bengal_Tige.webp",
+    "Snow Leopard": "https://cdn.discordapp.com/attachments/1520718205981687960/1528800337480384672/Snow_Leopard.webp",
 }
 
 PET_IMAGE_STYLES = {
