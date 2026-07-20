@@ -111,6 +111,7 @@ PET_IMAGES = {
     "Snowy Owl": "https://cdn.discordapp.com/attachments/1520718205981687960/1528800336037548164/Snowy_Ow.jfif",
     "Bengal Tiger": "https://cdn.discordapp.com/attachments/1520718205981687960/1528800337824321796/Bengal_Tige.webp",
     "Snow Leopard": "https://cdn.discordapp.com/attachments/1520718205981687960/1528800337480384672/Snow_Leopard.webp",
+    "Golden Pheasant": "https://cdn.discordapp.com/attachments/1520718205981687960/1528800337043914852/Golden_Pheasant.webp",
 }
 
 PET_IMAGE_STYLES = {
