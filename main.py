@@ -16,7 +16,7 @@ if os.path.exists(_secrets_path):
     with open(_secrets_path) as f:
         _secrets = json.load(f)
 
-for key in ("DISCORD_TOKEN", "DATABASE_URL"):
+for key in ("DISCORD_TOKEN", "DATABASE_URL", "NEON_DB_URL"):
     val = os.getenv(key) or _secrets.get(key) or os.environ.get(key)
     if val:
         os.environ[key] = val

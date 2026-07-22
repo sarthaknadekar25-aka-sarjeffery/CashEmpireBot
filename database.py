@@ -4,7 +4,7 @@ import json
 _db_ready = False
 _db_conn = None
 
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+DATABASE_URL = os.getenv("DATABASE_URL") or os.getenv("NEON_DB_URL") or ""
 if DATABASE_URL and DATABASE_URL.startswith("postgres"):
     try:
         import psycopg2
