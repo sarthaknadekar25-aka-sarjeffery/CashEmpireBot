@@ -4,5 +4,5 @@ run = "python main.py"
 channel = "stable-22_11"
 
 [[ports]]
-localPort = 8080
+localPort = 5000
 externalPort = 80

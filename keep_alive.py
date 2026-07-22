@@ -161,7 +161,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def run():
     try:
-        HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
+        HTTPServer(("0.0.0.0", 5000), Handler).serve_forever()
     except OSError:
         pass
 Thread(target=run, daemon=True).start()
