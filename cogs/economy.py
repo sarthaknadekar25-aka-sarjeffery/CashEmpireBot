@@ -45,6 +45,7 @@ class Economy(commands.Cog):
     @app_commands.command(name="balance", description="Check your coin balance")
     async def balance(self, interaction: discord.Interaction, member: discord.Member = None):
         member = member or interaction.user
+        await interaction.response.defer(ephemeral=True)
         data = load_data()
         player = get_player(data, member.id)
         booster_mult = get_active_multiplier(player)
@@ -54,10 +55,11 @@ class Economy(commands.Cog):
         embed.add_field(name="Booster", value=f"**{booster_mult}x**", inline=True)
         embed.add_field(name="Pet", value=f"**{pet_mult}x**", inline=True)
         embed.set_thumbnail(url=member.display_avatar.url)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="daily", description="Claim your daily reward")
     async def daily(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         data = load_data()
         player = get_player(data, interaction.user.id)
         now = datetime.utcnow()
@@ -67,7 +69,7 @@ class Economy(commands.Cog):
                 remaining = timedelta(hours=24) - (now - last)
                 hours, rem = divmod(remaining.seconds, 3600)
                 minutes = rem // 60
-                await interaction.response.send_message(f"You already claimed your daily. Come back in **{hours}h {minutes}m**.")
+                await interaction.followup.send(f"You already claimed your daily. Come back in **{hours}h {minutes}m**.")
                 return
         base = random.randint(50, 150)
         booster_mult = get_active_multiplier(player)
@@ -81,10 +83,11 @@ class Economy(commands.Cog):
         embed.add_field(name="Booster", value=f"{booster_mult}x", inline=True)
         embed.add_field(name="Pet", value=f"{pet_mult}x", inline=True)
         embed.add_field(name="Balance", value=f"**{player['balance']}**", inline=False)
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="work", description="Work to earn coins")
     async def work(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         data = load_data()
         player = get_player(data, interaction.user.id)
         base = random.randint(10, 50)
@@ -101,17 +104,18 @@ class Economy(commands.Cog):
         embed.add_field(name="Pet", value=f"{pet_mult}x", inline=True)
         embed.add_field(name="Total", value=f"**+{total}**", inline=False)
         embed.add_field(name="Balance", value=f"**{player['balance']}**", inline=False)
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="gamble", description="Gamble your coins")
     async def gamble(self, interaction: discord.Interaction, amount: int):
-        data = load_data()
-        player = get_player(data, interaction.user.id)
         if amount <= 0:
             await interaction.response.send_message("Bet a positive amount.")
             return
+        await interaction.response.defer()
+        data = load_data()
+        player = get_player(data, interaction.user.id)
         if player["balance"] < amount:
-            await interaction.response.send_message("You don't have enough coins.")
+            await interaction.followup.send("You don't have enough coins.")
             return
         roll = random.randint(1, 100)
         if roll <= 45:
@@ -127,20 +131,21 @@ class Economy(commands.Cog):
         save_data(data)
         embed = discord.Embed(title=title, description=text, color=color)
         embed.add_field(name="Balance", value=f"**{player['balance']}**")
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="transfer", description="Transfer coins to another player")
     async def transfer(self, interaction: discord.Interaction, member: discord.Member, amount: int):
-        data = load_data()
-        sender = get_player(data, interaction.user.id)
         if amount <= 0:
             await interaction.response.send_message("Transfer a positive amount.")
             return
-        if sender["balance"] < amount:
-            await interaction.response.send_message("You don't have enough coins.")
-            return
         if member.id == interaction.user.id:
             await interaction.response.send_message("You can't transfer to yourself.")
+            return
+        await interaction.response.defer()
+        data = load_data()
+        sender = get_player(data, interaction.user.id)
+        if sender["balance"] < amount:
+            await interaction.followup.send("You don't have enough coins.")
             return
         receiver = get_player(data, member.id)
         sender["balance"] -= amount
@@ -148,7 +153,7 @@ class Economy(commands.Cog):
         save_data(data)
         embed = discord.Embed(title="Transfer Complete", description=f"Sent {amount} coins to {member.mention}", color=VIP_DARK)
         embed.add_field(name="Your Balance", value=f"**{sender['balance']}**")
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot):

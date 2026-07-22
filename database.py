@@ -65,12 +65,10 @@ def save_data(data):
     if _db_ready:
         try:
             cur = _db_conn.cursor()
-            cur.execute("DELETE FROM players")
-            if data:
-                psycopg2.extras.execute_values(
-                    cur,
-                    "INSERT INTO players (uid, data) VALUES %s",
-                    [(uid, json.dumps(pd)) for uid, pd in data.items()]
+            for uid, pd in data.items():
+                cur.execute(
+                    "INSERT INTO players (uid, data) VALUES (%s, %s) ON CONFLICT (uid) DO UPDATE SET data = EXCLUDED.data",
+                    (uid, json.dumps(pd))
                 )
             cur.close()
             return

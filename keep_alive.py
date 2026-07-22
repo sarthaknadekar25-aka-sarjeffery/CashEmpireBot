@@ -1,8 +1,8 @@
-from flask import Flask, send_file
+from flask import Flask
 from threading import Thread
-import os, io
+import os
 
-app = Flask("")
+app = Flask(__name__)
 
 HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -49,7 +49,10 @@ def home():
 
 def run():
     port = int(os.getenv("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    try:
+        app.run(host="0.0.0.0", port=port)
+    except OSError:
+        pass
 
 def keep_alive():
     t = Thread(target=run, daemon=True)
