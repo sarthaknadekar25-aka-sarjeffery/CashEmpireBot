@@ -1,8 +1,1 @@
 run = "python main.py"
-
-[nix]
-channel = "stable-22_11"
-
-[[ports]]
-localPort = 5000
-externalPort = 80
