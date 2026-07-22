@@ -5,7 +5,6 @@
 __pycache__/
 data/
 README.md
-index.html
 .replit
 pyproject.toml
 keep_alive.py

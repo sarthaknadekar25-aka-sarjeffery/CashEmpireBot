@@ -1,11 +1,1 @@
-run = ["python", "-u", "main.py"]
-
-[nix]
-channel = "stable-22_11"
-
-[deployment]
-run = ["python", "-u", "main.py"]
-
-[[ports]]
-localPort = 8080
-externalPort = 80
+run = "python -u main.py"
