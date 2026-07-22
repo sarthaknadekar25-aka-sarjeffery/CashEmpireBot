@@ -7,4 +7,3 @@ data/
 README.md
 .replit
 pyproject.toml
-keep_alive.py

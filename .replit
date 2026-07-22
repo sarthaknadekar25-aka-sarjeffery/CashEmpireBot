@@ -1,1 +1,1 @@
-run = "python -u main.py"
+run = "python main.py"
