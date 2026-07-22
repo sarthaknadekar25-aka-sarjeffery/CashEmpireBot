@@ -130,21 +130,23 @@ class PetToggleButton(discord.ui.Button):
         self.target_user = user_id
         self.data_ref = data_ref
         self.view_ref = view_ref
+        player = data_ref[str(user_id)]
         super().__init__(
             label=f"#{pet_idx + 1}",
             style=discord.ButtonStyle.primary,
-            emoji=data_ref["pets"][pet_idx].get("emoji", "🐾")
+            emoji=player["pets"][pet_idx].get("emoji", "🐾")
         )
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.target_user:
             await interaction.response.send_message("Not your menu.", ephemeral=True)
             return
-        pet = self.data_ref["pets"][self.pet_idx]
+        player = self.data_ref[str(self.target_user)]
+        pet = player["pets"][self.pet_idx]
         if pet.get("active"):
             pet["active"] = False
         else:
-            for p in self.data_ref["pets"]:
+            for p in player["pets"]:
                 p["active"] = False
             pet["active"] = True
         save_data(self.view_ref.data_ref)
@@ -163,7 +165,8 @@ class ActivateAllButton(discord.ui.Button):
         if interaction.user.id != self.target_user:
             await interaction.response.send_message("Not your menu.", ephemeral=True)
             return
-        for p in self.data_ref["pets"]:
+        player = self.data_ref[str(self.target_user)]
+        for p in player["pets"]:
             p["active"] = True
         save_data(self.view_ref.data_ref)
         self.view_ref.build_page()
