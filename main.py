@@ -70,5 +70,8 @@ class MyBot(commands.Bot):
                 print(f"Failed to sync guild commands: {e}", flush=True)
 
 
+from keep_alive import keep_alive
+keep_alive()
+
 bot = MyBot()
 bot.run(os.environ["DISCORD_TOKEN"])
