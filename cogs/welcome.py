@@ -1,9 +1,10 @@
-import discord
+import discord, asyncio
 from discord.ext import commands
 from config import WELCOME_CHANNEL_ID, LEAVE_CHANNEL_ID, GUILD_ID
 from datetime import datetime
 
 VIP_DARK = discord.Color.from_rgb(30, 30, 35)
+_recent = set()
 
 
 class Welcome(commands.Cog):
@@ -40,6 +41,12 @@ class Welcome(commands.Cog):
     async def on_member_remove(self, member):
         if member.guild.id != GUILD_ID:
             return
+        key = f"leave_{member.id}"
+        if key in _recent:
+            return
+        _recent.add(key)
+        await asyncio.sleep(2)
+        _recent.discard(key)
         channel = self.bot.get_channel(LEAVE_CHANNEL_ID)
         if not channel:
             return
