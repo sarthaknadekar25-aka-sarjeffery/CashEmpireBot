@@ -54,7 +54,7 @@ class Economy(commands.Cog):
         embed.add_field(name="Booster", value=f"**{booster_mult}x**", inline=True)
         embed.add_field(name="Pet", value=f"**{pet_mult}x**", inline=True)
         embed.set_thumbnail(url=member.display_avatar.url)
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="daily", description="Claim your daily reward")
     async def daily(self, interaction: discord.Interaction):

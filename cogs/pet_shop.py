@@ -307,10 +307,10 @@ class PetShop(commands.Cog):
         migrate_pets(player)
         pets = player.get("pets", [])
         if not pets:
-            await interaction.response.send_message("You have no pets. Open crates in `/petshop`!")
+            await interaction.response.send_message("You have no pets. Open crates in `/petshop`!", ephemeral=True)
             return
         view = InventoryView(interaction.user.id, pets, data)
-        await interaction.response.send_message(embed=view.get_embed(), view=view)
+        await interaction.response.send_message(embed=view.get_embed(), view=view, ephemeral=True)
 
 
 async def setup(bot):
