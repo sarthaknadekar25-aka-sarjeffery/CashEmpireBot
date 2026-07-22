@@ -85,8 +85,9 @@ class Leaderboard(commands.Cog):
         pet_mult = 1.0
         for pet in player.get("pets", []):
             if isinstance(pet, dict) and pet.get("active"):
-                pet_mult = float(pet.get("multiplier", 1.0))
-                break
+                m = float(pet.get("multiplier", 1.0))
+                if m > pet_mult:
+                    pet_mult = m
         xp_gain = int(1 * pet_mult)
         player["xp"] = player.get("xp", 0) + xp_gain
         player["messages"] = player.get("messages", 0) + 1

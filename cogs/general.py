@@ -114,14 +114,16 @@ class General(commands.Cog):
         else:
             embed.add_field(name="No Active Boosters", value="Buy one from `/shop`!", inline=False)
         pet_mult = 1.0
+        active_names = []
         for pet in player.get("pets", []):
             if isinstance(pet, dict) and pet.get("active"):
-                pet_mult = float(pet.get("multiplier", 1.0))
-                break
+                m = float(pet.get("multiplier", 1.0))
+                if m > pet_mult:
+                    pet_mult = m
+                active_names.append(pet["name"])
         if pet_mult > 1.0:
-            active_pet = next((p for p in player.get("pets", []) if isinstance(p, dict) and p.get("active")), None)
-            name = active_pet["name"] if active_pet else "Pet"
-            embed.add_field(name="🐾 Active Pet", value=f"**{name}** — {pet_mult}x", inline=False)
+            slots = player.get("equip_slots", 1)
+            embed.add_field(name="🐾 Active Pet", value=f"**{', '.join(active_names)}** — {pet_mult}x | Slots: {slots}", inline=False)
         embed.set_footer(text="Boosters last 24 hours from purchase")
         await interaction.response.send_message(embed=embed)
 

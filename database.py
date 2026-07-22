@@ -84,7 +84,7 @@ def save_data(data):
 DEFAULT_PLAYER = {
     "balance": 100, "last_daily": None,
     "multiplier_2x_expires": None, "multiplier_5x_expires": None,
-    "pets": [], "inventory": {}, "luck_boost": 0,
+    "pets": [], "equip_slots": 1, "inventory": {}, "luck_boost": 0,
     "xp": 0, "messages": 0, "commands": 0
 }
 

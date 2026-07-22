@@ -131,9 +131,10 @@ class PetToggleButton(discord.ui.Button):
         self.data_ref = data_ref
         self.view_ref = view_ref
         player = data_ref[str(user_id)]
+        is_active = player["pets"][pet_idx].get("active", False)
         super().__init__(
             label=f"#{pet_idx + 1}",
-            style=discord.ButtonStyle.primary,
+            style=discord.ButtonStyle.success if is_active else discord.ButtonStyle.primary,
             emoji=player["pets"][pet_idx].get("emoji", "🐾")
         )
 
@@ -146,31 +147,61 @@ class PetToggleButton(discord.ui.Button):
         if pet.get("active"):
             pet["active"] = False
         else:
-            for p in player["pets"]:
-                p["active"] = False
+            max_slots = player.get("equip_slots", 1)
+            active_count = sum(1 for p in player["pets"] if p.get("active"))
+            if active_count >= max_slots:
+                await interaction.response.send_message(f"You've reached your **{max_slots} slot** limit. Deactivate a pet first or buy more slots in `/petshop`.", ephemeral=True)
+                return
             pet["active"] = True
         save_data(self.view_ref.data_ref)
         self.view_ref.build_page()
         await interaction.response.edit_message(embed=self.view_ref.get_embed(), view=self.view_ref)
 
 
-class ActivateAllButton(discord.ui.Button):
+class EquipBestButton(discord.ui.Button):
     def __init__(self, user_id, data_ref, view_ref):
         self.target_user = user_id
         self.data_ref = data_ref
         self.view_ref = view_ref
-        super().__init__(label="All Pets", style=discord.ButtonStyle.success, emoji="🌟")
+        super().__init__(label="Equip Best", style=discord.ButtonStyle.success, emoji="🌟")
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.target_user:
             await interaction.response.send_message("Not your menu.", ephemeral=True)
             return
         player = self.data_ref[str(self.target_user)]
+        max_slots = player.get("equip_slots", 1)
+        sorted_pets = sorted(player["pets"], key=lambda p: float(p.get("multiplier", 1.0)), reverse=True)
         for p in player["pets"]:
+            p["active"] = False
+        for p in sorted_pets[:max_slots]:
             p["active"] = True
         save_data(self.view_ref.data_ref)
         self.view_ref.build_page()
         await interaction.response.edit_message(embed=self.view_ref.get_embed(), view=self.view_ref)
+
+
+class BuySlotButton(discord.ui.Button):
+    def __init__(self, user_id, price):
+        self.target_user = user_id
+        self.price = price
+        super().__init__(label=f"Buy Slot ({price} coins)", style=discord.ButtonStyle.secondary, emoji="📦")
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.target_user:
+            await interaction.response.send_message("Not your menu.", ephemeral=True)
+            return
+        data = load_data()
+        player = get_player(data, interaction.user.id)
+        current = player.get("equip_slots", 1)
+        price = 10000 + (current - 1) * 5000
+        if player["balance"] < price:
+            await interaction.response.send_message(f"You need **{price} coins**. You have **{player['balance']}**.", ephemeral=True)
+            return
+        player["balance"] -= price
+        player["equip_slots"] = current + 1
+        save_data(data)
+        await interaction.response.send_message(f"✅ Slot bought! You now have **{current + 1}** equip slots (−{price} coins).", ephemeral=True)
 
 
 class PrevPageButton(discord.ui.Button):
@@ -219,7 +250,7 @@ class InventoryView(discord.ui.View):
         end = min(start + PET_PER_PAGE, len(self.pets))
         for idx in range(start, end):
             self.add_item(PetToggleButton(idx, self.target_user, self.data_ref, self))
-        self.add_item(ActivateAllButton(self.target_user, self.data_ref, self))
+        self.add_item(EquipBestButton(self.target_user, self.data_ref, self))
         if self.page > 0:
             self.add_item(PrevPageButton(self.target_user, self))
         if self.page < self.max_page:
@@ -229,16 +260,19 @@ class InventoryView(discord.ui.View):
         start = self.page * PET_PER_PAGE
         end = min(start + PET_PER_PAGE, len(self.pets))
         active = next((p for p in self.pets if p.get("active")), None)
+        player = self.data_ref[str(self.target_user)]
+        max_slots = player.get("equip_slots", 1)
+        active_count = sum(1 for p in self.pets if p.get("active"))
         embed = discord.Embed(title=f"Your Pets ({len(self.pets)}) — Page {self.page + 1}/{self.max_page + 1}", color=VIP_DARK)
         if active:
             embed.set_thumbnail(url=pet_image_url(active["name"], active["rarity"]))
         for i in range(start, end):
             pet = self.pets[i]
-            status = " ⭐ ACTIVE" if pet.get("active") else " ○ inactive"
+            status = " **⭐ ACTIVE**" if pet.get("active") else " **✖️ INACTIVE**"
             color_emoji = {"Common": "⬜", "Uncommon": "🟢", "Rare": "🔵", "Epic": "🟣", "Legendary": "🟡", "Gold": "🌟"}
             ce = color_emoji.get(pet.get("rarity", "Common"), "⬜")
             embed.add_field(name=f"[{i+1}] {pet.get('emoji', '🐾')} {pet['name']}{status}", value=f"{ce} {pet.get('rarity', 'Common')} | **{pet['multiplier']}x**", inline=False)
-        embed.set_footer(text="Click a pet button to toggle | 🌟 All Pets activates every pet")
+        embed.set_footer(text=f"Slots: {active_count}/{max_slots}  |  Click a pet button to toggle  |  🌟 Equip Best fills slots")
         return embed
 
 
@@ -255,9 +289,15 @@ class PetShop(commands.Cog):
         for c in CRATES:
             gold = next(p for p in c["pets"] if p["rarity"] == "Gold")
             embed.add_field(name=f"{c['emoji']} {c['name']} — {c['price']} coins", value=f"└ Includes **{gold['name']}** ({gold['mult_min']}x-{gold['mult_max']}x) at 1% chance", inline=False)
+        data = load_data()
+        player = get_player(data, interaction.user.id)
+        current_slots = player.get("equip_slots", 1)
+        slot_price = 10000 + (current_slots - 1) * 5000
+        embed.add_field(name="\u200b", value=f"**📦 Extra Slot** — {slot_price} coins (current: {current_slots})", inline=False)
         view = discord.ui.View()
         for c in CRATES:
             view.add_item(CrateButton(c, interaction.user.id))
+        view.add_item(BuySlotButton(interaction.user.id, slot_price))
         await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="mypets", description="View your pet inventory")

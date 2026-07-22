@@ -24,12 +24,15 @@ def get_active_multiplier(player):
 
 
 def get_active_pet_multiplier(player):
+    best = 1.0
     for pet in player.get("pets", []):
         if isinstance(pet, str):
             continue
         if pet.get("active"):
-            return float(pet.get("multiplier", 1.0))
-    return 1.0
+            mult = float(pet.get("multiplier", 1.0))
+            if mult > best:
+                best = mult
+    return best
 
 
 class Economy(commands.Cog):
