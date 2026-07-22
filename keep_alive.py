@@ -51,7 +51,7 @@ footer{text-align:center;padding:24px;color:rgba(255,255,255,.15);font-size:12px
 <div class="nav-links">
 <a href="#features">Features</a>
 <a href="#stats">Stats</a>
-<a class="btn" href="YOUR_SERVER_INVITE_LINK" target="_blank">Join Server</a>
+<a class="btn" href="https://discord.gg/XAhXeJqAdw" target="_blank">Join Server</a>
 </div>
 </nav>
 
@@ -64,7 +64,7 @@ footer{text-align:center;padding:24px;color:rgba(255,255,255,.15);font-size:12px
 <h1>Build Your Empire</h1>
 <p>CashEmpireBot is a powerful Discord economy bot with pets, crates, leaderboards, voice farming, trading and more. Grow your wealth, collect rare pets, and dominate the leaderboard.</p>
 <div class="btns">
-<a class="btn" href="YOUR_SERVER_INVITE_LINK" target="_blank">Join the Server</a>
+<a class="btn" href="https://discord.gg/XAhXeJqAdw" target="_blank">Join the Server</a>
 <a class="btn-outline" href="#features">Explore Features</a>
 </div>
 </div>
