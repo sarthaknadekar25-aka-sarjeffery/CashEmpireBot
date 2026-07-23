@@ -49,20 +49,27 @@ a{display:inline-block;padding:10px 24px;background:linear-gradient(90deg,#f7971
 """
 
 class H(BaseHTTPRequestHandler):
+    def _send(self, ct="text/html"):
+        self.send_response(200)
+        self.send_header("Content-Type", ct)
+        self.end_headers()
+
+    def do_HEAD(self):
+        self._send()
+
     def do_GET(self):
         if self.path == "/logo.png":
             try:
+                self._send("image/png")
                 with open("logo.png","rb") as f:
-                    self.send_response(200)
-                    self.send_header("Content-Type","image/png")
-                    self.end_headers()
                     self.wfile.write(f.read())
-            except: pass
+            except:
+                self.send_response(404)
+                self.end_headers()
             return
-        self.send_response(200)
-        self.send_header("Content-Type","text/html")
-        self.end_headers()
+        self._send()
         self.wfile.write(PAGE.encode())
+
     def log_message(self,*a): pass
 
 def run():
