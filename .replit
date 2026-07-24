@@ -3,6 +3,9 @@ run = "python main.py"
 [nix]
 channel = "stable-22_11"
 
+[deployment]
+run = "python main.py"
+
 [[ports]]
 localPort = 8080
 externalPort = 80

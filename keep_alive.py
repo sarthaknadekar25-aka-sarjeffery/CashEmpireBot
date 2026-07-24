@@ -1,5 +1,6 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
+import os
 
 PAGE = """
 <!DOCTYPE html>
@@ -73,6 +74,6 @@ class H(BaseHTTPRequestHandler):
     def log_message(self,*a): pass
 
 def run():
-    try: HTTPServer(("0.0.0.0",8080),H).serve_forever()
+    try: HTTPServer(("0.0.0.0", int(os.environ.get("PORT", 8080))), H).serve_forever()
     except: pass
 Thread(target=run,daemon=True).start()
